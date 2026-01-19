@@ -8,6 +8,22 @@ This guide walks you through the process of setting up and running an GridGain c
 - Basic familiarity with command-line operations
 - Java 11 or higher installed (for connecting to the cluster)
 
+## Setting Up an Apache Ignite 3 Cluster
+
+Before we can start using SQL, we need to set up a multi-node Ignite cluster. We'll use Docker Compose to create a three-node cluster.
+
+```mermaid
+graph TD
+    A[Your Computer] --> B[Docker Network]
+    B --> C[Node 1]
+    B --> D[Node 2]
+    B --> E[Node 3]
+    F[CLI Container] --> B
+```
+
+> [!NOTE]
+> You can think of GridGain as being a distribution of Apache Ignite in much the same way that Debian is a distribution of Linux. Everything we cover here is correct for both Apache Ignite and GridGain.
+
 ## Step 1: Understand the Docker Compose Configuration
 
 1. View the file named [`docker-compose.yml`](docker-compose.yaml) in the current directory:
@@ -31,25 +47,30 @@ You should see all three nodes with "running" status.
 
 ## Step 3: Initialize the Cluster
 
-1. Start the Ignite CLI in Docker:
+1. Ensure your license file is located in the same directory as your docker-compose.yaml file. A GridGain Community Edition or GridGain evaluation license will both work well for this exercise
+
+2. Start the Ignite CLI in Docker:
 
 ```bash
-docker run --rm -it --network=gridgain9_default gridgain/gridgain9:9.1.8 cli
+docker run --rm -it --network=gridgain9_default -v ./gridgain-license.json:/opt/gridgain/downloads/gridgain-license.json gridgain/gridgain9:9.1.8 cli
 ```
 
-2. Inside the CLI, connect to one of the nodes:
+> [!NOTE]
+> If you have an evaluation license, a later version of Gridgain will also work. Switching the compose file to use Apache Ignite should also work but may not have been tested. We won't cover this during the workshop.
+
+3. Inside the CLI, connect to one of the nodes:
 
 ```
 connect http://node1:10300
 ```
 
-3. Initialize the cluster with a name and metastorage group:
+4. Initialize the cluster with a name and metastorage group:
 
 ```
-cluster init --name=gridgain9 --metastorage-group=node1,node2,node3
+cluster init --name=gridgain9 --metastorage-group=node1,node2,node3 --license=/opt/gridgain/downloads/gridgain-license.json
 ```
 
-4. Exit the CLI by typing `exit` or pressing Ctrl+D
+5. Exit the CLI by typing `exit` or pressing Ctrl+D
 
 ## Step 4: Verify Your Cluster
 
@@ -62,12 +83,6 @@ The Docker Compose file exposes two types of ports for each node:
 - **10300-10302**: REST API ports for administrative operations
 - **10800-10802**: Client connection ports for your applications
 
-## Stopping the Cluster
+## Next steps
 
-When you're done working with the cluster, you can stop it using:
-
-```bash
-docker compose down
-```
-
-This will stop and remove all the containers. Your data will be lost unless you've configured persistent storage.
+The lessons will resume shortly! Please don't shutdown your cluster yet.
