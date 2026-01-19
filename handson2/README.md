@@ -21,7 +21,7 @@ In your terminal, run:
 ```bash
 docker run --rm -it \
   --network=gridgain9_default \
-  -v ./sql/:/opt/ignite/downloads/ \
+  -v ./sql/:/opt/gridgain/downloads/ \
   gridgain/gridgain9:9.1.8 \
   cli
 ```
@@ -161,73 +161,24 @@ Now that we have our tables set up, let's populate them with sample data.
 
 ### Adding Artists and Albums
 
-Let's start by adding some artists. Exit the `sql-cli>` by typing `exit;`. Then load the current store catalog from the sql data file.
+Let's start by adding some artists. Exit the `sql-cli>` by typing `exit;`. Then populate all our tables from the sql data file.
 
 ```bash
-sql --file=/opt/gridgain/downloads/current_catalog.sql
+sql --file=/opt/gridgain/downloads/data.sql
 ```
 
 ```bash
-sql-cli> exit;
-[node1]> sql --file=/opt/gridgain/downloads/current_catalog.sql
+[node1]> sql --file=/opt/gridgain/downloads/data.sql
 Updated 275 rows.
 Updated 347 rows.
-```
-
-### Adding Genres and Media Types
-
-Let's populate our reference tables the same way:
-
-```bash
-sql --file=/opt/gridgain/downloads/media_and_genre.sql
-```
-
-```bash
-[node1]> sql --file=/opt/gridgain/downloads/media_and_genre.sql
 Updated 25 rows.
 Updated 5 rows.
-```
-
-### Adding Tracks
-
-Now let's add some tracks to our albums:
-
-```bash
-sql --file=/opt/gridgain/downloads/tracks.sql
-```
-
-```bash
-[node1]> sql --file=/opt/gridgain/downloads/tracks.sql
 Updated 1000 rows.
 Updated 1000 rows.
 Updated 1000 rows.
 Updated 503 rows.
-```
-
-### Adding Employees and Customers
-
-Let's add some employee and customer data:
-
-```bash
-sql --file=/opt/gridgain/downloads/ee_and_cust.sql
-```
-
-```bash
-[node1]> sql --file=/opt/gridgain/downloads/ee_and_cust.sql
 Updated 8 rows.
 Updated 59 rows.
-```
-
-### Adding Invoices and Invoice Lines
-
-Finally, let's add some sales data:
-
-```bash
-sql --file=/opt/gridgain/downloads/invoices.sql
-```
-
-```bash
-[node1]> sql --file=/opt/gridgain/downloads/invoices.sql
 Updated 412 rows.
 Updated 1000 rows.
 Updated 1000 rows.
@@ -623,21 +574,61 @@ GROUP BY
 ```
 
 ```bash
-╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
-║ PLAN                                                                                                                                                                                                                                        ║
-╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ Project(INVOICEID=[$0], LINEITEMCOUNT=[$3], INVOICETOTAL=[$4], TRACKNAME=[$1], ALBUMTITLE=[$2]): rowcount = 1.0, cumulative cost = IgniteCost [rowCount=50.3, cpu=105.2, memory=58.136, io=2.0, network=150.0], id = 18992                  ║
-║   ColocatedHashAggregate(group=[{0, 1, 2}], LINEITEMCOUNT=[COUNT()], INVOICETOTAL=[SUM($3)]): rowcount = 1.0, cumulative cost = IgniteCost [rowCount=48.3, cpu=103.2, memory=57.136, io=1.0, network=149.0], id = 18991                     ║
-║     Project(INVOICEID=[$5], TRACKNAME=[$3], ALBUMTITLE=[$1], $f4=[*($7, $8)]): rowcount = 1.0, cumulative cost = IgniteCost [rowCount=47.3, cpu=102.2, memory=46.400000000000006, io=1.0, network=149.0], id = 18990                        ║
-║       NestedLoopJoin(condition=[=($4, $0)], joinType=[inner]): rowcount = 1.0, cumulative cost = IgniteCost [rowCount=45.3, cpu=100.2, memory=45.400000000000006, io=0.0, network=148.0], id = 18989                                        ║
-║         Exchange(distribution=[single]): rowcount = 6.0, cumulative cost = IgniteCost [rowCount=12.0, cpu=12.0, memory=0.0, io=0.0, network=48.0], id = 18983                                                                               ║
-║           TableScan(table=[[PUBLIC, ALBUM]], tableId=[20], requiredColumns=[{0, 1}]): rowcount = 6.0, cumulative cost = IgniteCost [rowCount=6.0, cpu=6.0, memory=0.0, io=0.0, network=0.0], id = 18982                                     ║
-║         NestedLoopJoin(condition=[=($4, $0)], joinType=[inner]): rowcount = 1.05, cumulative cost = IgniteCost [rowCount=27.0, cpu=63.0, memory=16.0, io=0.0, network=100.0], id = 18988                                                    ║
-║           Exchange(distribution=[single]): rowcount = 7.0, cumulative cost = IgniteCost [rowCount=14.0, cpu=14.0, memory=0.0, io=0.0, network=84.0], id = 18985                                                                             ║
-║             TableScan(table=[[PUBLIC, TRACK]], tableId=[26], requiredColumns=[{0, 1, 2}]): rowcount = 7.0, cumulative cost = IgniteCost [rowCount=7.0, cpu=7.0, memory=0.0, io=0.0, network=0.0], id = 18984                                ║
-║           Exchange(distribution=[single]): rowcount = 1.0, cumulative cost = IgniteCost [rowCount=6.0, cpu=21.0, memory=0.0, io=0.0, network=16.0], id = 18987                                                                              ║
-║             TableScan(table=[[PUBLIC, INVOICELINE]], tableId=[34], filters=[=($t0, 1)], requiredColumns=[{1, 2, 3, 4}]): rowcount = 1.0, cumulative cost = IgniteCost [rowCount=5.0, cpu=20.0, memory=0.0, io=0.0, network=0.0], id = 18986 ║
-╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ PLAN                                                                                                        ║
+╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+║ Project                                                                                                     ║
+║     fieldNames: [INVOICEID, LINEITEMCOUNT, INVOICETOTAL, TRACKNAME, ALBUMTITLE]                             ║
+║     projection: [INVOICEID, LINEITEMCOUNT, INVOICETOTAL, TRACKNAME, ALBUMTITLE]                             ║
+║     est: (rows=9955526)                                                                                     ║
+║   ColocatedHashAggregate                                                                                    ║
+║       fieldNames: [INVOICEID, TRACKNAME, ALBUMTITLE, LINEITEMCOUNT, INVOICETOTAL]                           ║
+║       group: [INVOICEID, TRACKNAME, ALBUMTITLE]                                                             ║
+║       aggregation: [COUNT(), SUM($f4)]                                                                      ║
+║       est: (rows=9955526)                                                                                   ║
+║     Project                                                                                                 ║
+║         fieldNames: [INVOICEID, TRACKNAME, ALBUMTITLE, $f4]                                                 ║
+║         projection: [INVOICEID, NAME, TITLE, *(UNITPRICE, QUANTITY)]                                        ║
+║         est: (rows=20400668)                                                                                ║
+║       MergeJoin                                                                                             ║
+║           predicate: =(TRACKID$0, TRACKID)                                                                  ║
+║           fieldNames: [TRACKID, NAME, ALBUMID, ALBUMID$0, TITLE, INVOICEID, TRACKID$0, UNITPRICE, QUANTITY] ║
+║           type: inner                                                                                       ║
+║           est: (rows=20400668)                                                                              ║
+║         HashJoin                                                                                            ║
+║             predicate: =(ALBUMID, ALBUMID$0)                                                                ║
+║             fieldNames: [TRACKID, NAME, ALBUMID, ALBUMID$0, TITLE]                                          ║
+║             type: inner                                                                                     ║
+║             est: (rows=182331)                                                                              ║
+║           Exchange                                                                                          ║
+║               distribution: single                                                                          ║
+║               est: (rows=3503)                                                                              ║
+║             Sort                                                                                            ║
+║                 collation: [TRACKID ASC]                                                                    ║
+║                 est: (rows=3503)                                                                            ║
+║               TableScan                                                                                     ║
+║                   table: PUBLIC.TRACK                                                                       ║
+║                   fieldNames: [TRACKID, NAME, ALBUMID]                                                      ║
+║                   est: (rows=3503)                                                                          ║
+║           Exchange                                                                                          ║
+║               distribution: single                                                                          ║
+║               est: (rows=347)                                                                               ║
+║             TableScan                                                                                       ║
+║                 table: PUBLIC.ALBUM                                                                         ║
+║                 fieldNames: [ALBUMID, TITLE]                                                                ║
+║                 est: (rows=347)                                                                             ║
+║         Exchange                                                                                            ║
+║             distribution: single                                                                            ║
+║             est: (rows=746)                                                                                 ║
+║           Sort                                                                                              ║
+║               collation: [TRACKID ASC]                                                                      ║
+║               est: (rows=746)                                                                               ║
+║             TableScan                                                                                       ║
+║                 table: PUBLIC.INVOICELINE                                                                   ║
+║                 predicate: =(INVOICEID, 1)                                                                  ║
+║                 fieldNames: [INVOICEID, TRACKID, UNITPRICE, QUANTITY]                                       ║
+║                 est: (rows=746)                                                                             ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 ```
 
 This execution plan demonstrates how Apache Ignite processes a query involving multiple joined tables with defined colocation relationships:
@@ -705,13 +696,7 @@ This will return you to the Ignite CLI. To exit the Ignite CLI, type:
 exit
 ```
 
-To stop the Ignite cluster, run the following command in your terminal:
-
-```bash
-docker compose down
-```
-
-This will stop and remove the Docker containers for your Ignite cluster.
+Leave your cluster running. We'll use it in the next hands-on session.
 
 ## Best Practices for Ignite SQL
 

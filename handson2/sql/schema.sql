@@ -16,8 +16,8 @@ DROP ZONE IF EXISTS ChinookReplicated;
 DROP ZONE IF EXISTS Chinook;
 
 -- Recreate the distribution zones
-CREATE ZONE IF NOT EXISTS Chinook WITH replicas=2, storage_profiles='default';
-CREATE ZONE IF NOT EXISTS ChinookReplicated WITH replicas=3, partitions=25, storage_profiles='default';
+CREATE ZONE IF NOT EXISTS Chinook (replicas 2) storage profiles['default'];
+CREATE ZONE IF NOT EXISTS ChinookReplicated (replicas all) storage profiles['default'];
 
 -- Recreate the tables
 CREATE TABLE Album
