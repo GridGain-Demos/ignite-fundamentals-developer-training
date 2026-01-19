@@ -1,4 +1,4 @@
-name: gridgain3
+name: gridgain9
 
 x-gridgain-def: &gridgain-def
   image: gridgain/gridgain9:9.1.8
