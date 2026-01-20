@@ -32,11 +32,8 @@ public class Main {
             // Demonstrate querying existing data using SQL API
             queryExistingTable(client);
 
-            // Create a new table using Java API
-            Table table = createTable(client);
-
             // Demonstrate different ways to interact with tables
-            populateTableWithDifferentViews(table);
+            populateTableWithDifferentViews(client);
 
             // Query the new table using SQL API
             queryNewTable(client);
@@ -47,50 +44,35 @@ public class Main {
      * Queries the pre-created Person table using SQL
      */
     private static void queryExistingTable(IgniteClient client) {
-        System.out.println("\n--- Querying Person table ---");
-        client.sql().execute(null, "SELECT * FROM Person")
-                .forEachRemaining(row -> System.out.println("Person: " + row.stringValue("name")));
-    }
-
-    /**
-     * Creates a new table using the Java API
-     */
-    private static Table createTable(IgniteClient client) {
-        System.out.println("\n--- Creating Person2 table ---");
-        return client.catalog().createTable(
-                TableDefinition.builder("Person2")
-                        .ifNotExists()
-                        .columns(
-                                ColumnDefinition.column("ID", ColumnType.INT32),
-                                ColumnDefinition.column("NAME", ColumnType.VARCHAR))
-                        .primaryKey("ID")
-                        .build());
+        System.out.println("\n--- Querying Album table ---");
+        client.sql().execute(null, "SELECT * FROM Album LIMIT 10")
+                .forEachRemaining(row -> System.out.println("Album: " + row.stringValue("title")));
     }
 
     /**
      * Demonstrates different ways to interact with tables
      */
-    private static void populateTableWithDifferentViews(Table table) {
-        System.out.println("\n--- Populating Person2 table using different views ---");
+    private static void populateTableWithDifferentViews(IgniteClient client) {
+        System.out.println("\n--- Populating Artist and Album tables using different views ---");
 
         // 1. Using RecordView with Tuples
-        RecordView<Tuple> recordView = table.recordView();
-        recordView.upsert(null, Tuple.create().set("id", 2).set("name", "Jane"));
+        RecordView<Tuple> recordView = client.tables().table("Artist").recordView();
+        recordView.upsert(null, Tuple.create().set("artistId", 276).set("name", "New Discovery Band"));
         System.out.println("Added record using RecordView with Tuple");
 
         // 2. Using RecordView with POJOs
-        RecordView<Person> pojoView = table.recordView(Person.class);
-        pojoView.upsert(null, new Person(3, "Jack"));
+        RecordView<Album> pojoView = client.tables().table("Album").recordView(Album.class);
+        pojoView.upsert(null, new Album(348, "First Light", 276, 2023));
         System.out.println("Added record using RecordView with POJO");
 
         // 3. Using KeyValueView with Tuples
-        KeyValueView<Tuple, Tuple> keyValueView = table.keyValueView();
-        keyValueView.put(null, Tuple.create().set("id", 4), Tuple.create().set("name", "Jill"));
+        KeyValueView<Tuple, Tuple> keyValueView = client.tables().table("Artist").keyValueView();
+        keyValueView.put(null, Tuple.create().set("artistId", 277), Tuple.create().set("name", "New Order"));
         System.out.println("Added record using KeyValueView with Tuples");
 
         // 4. Using KeyValueView with Native Types
-        KeyValueView<Integer, String> keyValuePojoView = table.keyValueView(Integer.class, String.class);
-        keyValuePojoView.put(null, 5, "Joe");
+        KeyValueView<AlbumKey, AlbumValue> keyValuePojoView = client.tables().table("Album").keyValueView(AlbumKey.class, AlbumValue.class);
+        keyValuePojoView.put(null, new AlbumKey(349, 277), new AlbumValue("Technique", 1989));
         System.out.println("Added record using KeyValueView with Native Types");
     }
 
@@ -98,24 +80,54 @@ public class Main {
      * Queries the newly created Person2 table using SQL
      */
     private static void queryNewTable(IgniteClient client) {
-        System.out.println("\n--- Querying Person2 table ---");
-        client.sql().execute(null, "SELECT * FROM Person2")
-                .forEachRemaining(row -> System.out.println("Person2: " + row.stringValue("name")));
+        System.out.println("\n--- Querying Album table ---");
+        client.sql().execute(null, "SELECT * FROM Album WHERE artistId = ?", 277)
+                .forEachRemaining(row -> System.out.println("Album: " + row.stringValue("title")));
     }
 
     /**
-     * POJO class representing a Person
+     * POJO class representing an Album
      */
-    public static class Person {
+    public static class Album {
         // Default constructor required for serialization
-        public Person() { }
+        public Album() { }
 
-        public Person(Integer id, String name) {
-            this.id = id;
-            this.name = name;
+        public Album(Integer albumId, String title, Integer artistId, Integer releaseYear) {
+            this.albumId = albumId;
+            this.title = title;
+            this.artistId = artistId;
+            this.releaseYear = releaseYear;
         }
 
-        Integer id;
-        String name;
+        Integer albumId;
+        String title;
+        Integer artistId;
+        Integer releaseYear;
+    }
+
+    public static class AlbumKey {
+        Integer albumId;
+        Integer artistId;
+
+        public AlbumKey() {
+        }
+
+        public AlbumKey(Integer albumId, Integer artistId) {
+            this.albumId = albumId;
+            this.artistId = artistId;
+        }
+    }
+
+    public static class AlbumValue {
+        String title;
+        Integer releaseYear;
+
+        public AlbumValue() {
+        }
+
+        public AlbumValue(String title, Integer releaseYear) {
+            this.title = title;
+            this.releaseYear = releaseYear;
+        }
     }
 }
