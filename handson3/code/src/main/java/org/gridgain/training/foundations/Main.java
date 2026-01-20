@@ -14,7 +14,7 @@ import org.apache.ignite.table.Tuple;
  * and working with data using different table view patterns.
  */
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         // Create an array of connection addresses for fault tolerance
         String[] addresses = {
                 "localhost:10800",
@@ -45,35 +45,40 @@ public class Main {
      */
     private static void queryExistingTable(IgniteClient client) {
         System.out.println("\n--- Querying Album table ---");
-        client.sql().execute(null, "SELECT * FROM Album LIMIT 10")
-                .forEachRemaining(row -> System.out.println("Album: " + row.stringValue("title")));
+        try (var rs = client.sql().execute(null, "SELECT * FROM Album LIMIT 10")) {
+                rs.forEachRemaining(row -> System.out.println("Album: " + row.stringValue("title")));
+        }
     }
 
     /**
      * Demonstrates different ways to interact with tables
      */
-    private static void populateTableWithDifferentViews(IgniteClient client) {
+    private static void populateTableWithDifferentViews(IgniteClient client) throws Exception {
         System.out.println("\n--- Populating Artist and Album tables using different views ---");
 
         // 1. Using RecordView with Tuples
-        RecordView<Tuple> recordView = client.tables().table("Artist").recordView();
-        recordView.upsert(null, Tuple.create().set("artistId", 276).set("name", "New Discovery Band"));
-        System.out.println("Added record using RecordView with Tuple");
+        try (RecordView<Tuple> recordView = client.tables().table("Artist").recordView()) {
+            recordView.upsert(null, Tuple.create().set("artistId", 276).set("name", "New Discovery Band"));
+            System.out.println("Added record using RecordView with Tuple");
+        }
 
         // 2. Using RecordView with POJOs
-        RecordView<Album> pojoView = client.tables().table("Album").recordView(Album.class);
-        pojoView.upsert(null, new Album(348, "First Light", 276, 2023));
-        System.out.println("Added record using RecordView with POJO");
+        try (RecordView<Album> pojoView = client.tables().table("Album").recordView(Album.class)) {
+            pojoView.upsert(null, new Album(348, "First Light", 276, 2023));
+            System.out.println("Added record using RecordView with POJO");
+        }
 
         // 3. Using KeyValueView with Tuples
-        KeyValueView<Tuple, Tuple> keyValueView = client.tables().table("Artist").keyValueView();
-        keyValueView.put(null, Tuple.create().set("artistId", 277), Tuple.create().set("name", "New Order"));
-        System.out.println("Added record using KeyValueView with Tuples");
+        try (KeyValueView<Tuple, Tuple> keyValueView = client.tables().table("Artist").keyValueView()) {
+            keyValueView.put(null, Tuple.create().set("artistId", 277), Tuple.create().set("name", "New Order"));
+            System.out.println("Added record using KeyValueView with Tuples");
+        }
 
         // 4. Using KeyValueView with Native Types
-        KeyValueView<AlbumKey, AlbumValue> keyValuePojoView = client.tables().table("Album").keyValueView(AlbumKey.class, AlbumValue.class);
-        keyValuePojoView.put(null, new AlbumKey(349, 277), new AlbumValue("Technique", 1989));
-        System.out.println("Added record using KeyValueView with Native Types");
+        try (KeyValueView<AlbumKey, AlbumValue> keyValuePojoView = client.tables().table("Album").keyValueView(AlbumKey.class, AlbumValue.class)) {
+            keyValuePojoView.put(null, new AlbumKey(349, 277), new AlbumValue("Technique", 1989));
+            System.out.println("Added record using KeyValueView with Native Types");
+        }
     }
 
     /**
@@ -81,8 +86,9 @@ public class Main {
      */
     private static void queryNewTable(IgniteClient client) {
         System.out.println("\n--- Querying Album table ---");
-        client.sql().execute(null, "SELECT * FROM Album WHERE artistId = ?", 277)
-                .forEachRemaining(row -> System.out.println("Album: " + row.stringValue("title")));
+        try (var rs = client.sql().execute(null, "SELECT * FROM Album WHERE artistId = ?", 277)) {
+                rs.forEachRemaining(row -> System.out.println("Album: " + row.stringValue("title")));
+        }
     }
 
     /**
@@ -99,15 +105,15 @@ public class Main {
             this.releaseYear = releaseYear;
         }
 
-        Integer albumId;
-        String title;
-        Integer artistId;
-        Integer releaseYear;
+        private Integer albumId;
+        private String title;
+        private Integer artistId;
+        private Integer releaseYear;
     }
 
     public static class AlbumKey {
-        Integer albumId;
-        Integer artistId;
+        private Integer albumId;
+        private Integer artistId;
 
         public AlbumKey() {
         }
@@ -119,8 +125,8 @@ public class Main {
     }
 
     public static class AlbumValue {
-        String title;
-        Integer releaseYear;
+        private String title;
+        private Integer releaseYear;
 
         public AlbumValue() {
         }
