@@ -1,12 +1,8 @@
 package org.gridgain.training.foundations;
 
-import org.apache.ignite.catalog.ColumnType;
-import org.apache.ignite.catalog.definitions.ColumnDefinition;
-import org.apache.ignite.catalog.definitions.TableDefinition;
 import org.apache.ignite.client.IgniteClient;
 import org.apache.ignite.table.KeyValueView;
 import org.apache.ignite.table.RecordView;
-import org.apache.ignite.table.Table;
 import org.apache.ignite.table.Tuple;
 
 /**
