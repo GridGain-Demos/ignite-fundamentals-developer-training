@@ -69,7 +69,7 @@ Now that our cluster is running and initialized, we can start using SQL to creat
 XXX
 
 ```
-sql --file=/opt/ignite/downloads/schema.sql
+sql --file=/opt/gridgain/downloads/schema.sql
 ```
 
 ### Database Entity Relationship
