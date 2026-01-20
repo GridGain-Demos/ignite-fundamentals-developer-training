@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.gridgain.training.foundations</groupId>
+    <artifactId>demo-client</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <module.name>GridGain 9 Scratchpad</module.name>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <gridgain.project>org.gridgain</gridgain.project>
+        <gridgain.version>9.1.8</gridgain.version>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>GridGain External Repository</id>
+            <url>https://www.gridgainsystems.com/nexus/content/repositories/external</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>${gridgain.project}</groupId>
+            <artifactId>ignite-client</artifactId>
+            <version>${gridgain.version}</version>
+        </dependency>
+    </dependencies>
+</project>

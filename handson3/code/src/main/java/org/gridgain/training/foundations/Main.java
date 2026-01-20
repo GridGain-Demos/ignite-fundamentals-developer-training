@@ -1,56 +1,4 @@
-# Hands-on #3: Using Java API
-
-This guide walks you through creating a Java application that connects to an Apache Ignite 3 cluster, demonstrating key patterns for working with data using Ignite's Java API.
-
-## Prerequisites
-
-* JDK 17 or later
-* Maven
-* Docker and Docker Compose
-
-## Setting Up Your Java Project
-
-### Create a Maven Project
-
-First, create a simple Maven project structure:
-
-```
-ignite3-java-demo/
-├── pom.xml
-├── docker-compose.yml
-└── src/
-    └── main/
-        └── java/
-            └── com/
-                └── example/
-                    └── Main.java
-```
-
-### Configure Maven Dependencies
-
-Edit your `pom.xml` file to include the Ignite client dependency:
-
-```xml
-    <dependencies>
-        <!-- Apache Ignite 3 Client -->
-        <dependency>
-            <groupId>org.apache.ignite</groupId>
-            <artifactId>ignite-client</artifactId>
-            <version>3.0.0</version>
-        </dependency>
-    </dependencies>
-```
-
-## Building Your Java Application
-
-Now, let's create a Java application that connects to our Ignite cluster and performs various data operations.
-
-### Main Application Class
-
-Create a `Main.java` file with the following code:
-
-```java
-package com.example;
+package org.gridgain.training.foundations;
 
 import org.apache.ignite.catalog.ColumnType;
 import org.apache.ignite.catalog.definitions.ColumnDefinition;
@@ -62,7 +10,7 @@ import org.apache.ignite.table.Table;
 import org.apache.ignite.table.Tuple;
 
 /**
- * This example demonstrates connecting to an Apache Ignite 3 cluster
+ * This example demonstrates connecting to an GridGain 9 cluster
  * and working with data using different table view patterns.
  */
 public class Main {
@@ -171,99 +119,3 @@ public class Main {
         String name;
     }
 }
-```
-
-## Running the Application
-
-To run your application:
-
-1. Make sure your Ignite cluster is up and running
-2. Compile and run your Java application:
-
-   ```bash
-   mvn compile exec:java -Dexec.mainClass="org.gridgain.training.foundations..Main"
-   ```
-
-## Expected Output
-
-You should see output similar to this:
-
-```text
-Connected to the cluster: Connections{active=1, total=1}
-
---- Querying Person table ---
-Person: John
-
---- Creating Person2 table ---
-
---- Populating Person2 table using different views ---
-Added record using RecordView with Tuple
-Added record using RecordView with POJO
-Added record using KeyValueView with Tuples
-Added record using KeyValueView with Native Types
-
---- Querying Person2 table ---
-Person2: Jane
-Person2: Jack
-Person2: Jill
-Person2: Joe
-```
-
-## Understanding Table Views in Ignite 3
-
-Ignite 3 provides multiple view patterns for interacting with tables:
-
-### RecordView Pattern
-
-RecordView treats tables as a collection of records, perfect for operations that work with entire rows:
-
-```java
-// Get RecordView for Tuple objects (schema-less)
-RecordView<Tuple> recordView = table.recordView();
-recordView.upsert(null, Tuple.create().set("id", 2).set("name", "Jane"));
-
-// Get RecordView for mapped POJO objects (type-safe)
-RecordView<Person> pojoView = table.recordView(Person.class);
-pojoView.upsert(null, new Person(3, "Jack"));
-```
-
-### KeyValueView Pattern
-
-KeyValueView treats tables as a key-value store, ideal for simple lookups:
-
-```java
-// Get KeyValueView for Tuple objects
-KeyValueView<Tuple, Tuple> keyValueView = table.keyValueView();
-keyValueView.put(null, Tuple.create().set("id", 4), Tuple.create().set("name", "Jill"));
-
-// Get KeyValueView for native Java types
-KeyValueView<Integer, String> keyValuePojoView = table.keyValueView(Integer.class, String.class);
-keyValuePojoView.put(null, 5, "Joe");
-```
-
-## Cleaning Up
-
-To stop your Ignite cluster when you're done:
-
-```bash
-docker compose down
-```
-
-## Troubleshooting
-
-If you encounter connection issues:
-
-* Verify your Docker containers are running with `docker compose ps`
-* Check if the exposed ports match those in your client configuration
-* Ensure that the `localhost` interface can access the Docker container network
-
-## Next Steps
-
-Now that you've explored the basics of connecting to Ignite and interacting with data:
-
-* Try implementing transactions
-* Experiment with more complex schemas and data types
-* Explore data partitioning strategies
-* Investigate Ignite's distributed computing capabilities
-
-For more information, consult the [Apache Ignite 3 documentation](https://ignite.apache.org/docs/3.0.0/index).
