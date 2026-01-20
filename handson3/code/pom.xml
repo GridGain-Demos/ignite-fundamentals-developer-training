@@ -15,6 +15,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <gridgain.project>org.gridgain</gridgain.project>
         <gridgain.version>9.1.8</gridgain.version>
+        <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
     </properties>
 
     <repositories>
