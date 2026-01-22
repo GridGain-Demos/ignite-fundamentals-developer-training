@@ -4,7 +4,7 @@ This guide walks you through creating a Java application that connects to an Apa
 
 ## Prerequisites
 
-* JDK 17 or later
+* JDK 11 or later
 * Maven
 * Docker and Docker Compose
 * (Optionally an IDE, such as IntelliJ)
@@ -32,7 +32,7 @@ To run your application:
 2. Compile and run your Java application:
 
    ```bash
-   mvn compile exec:java -Dexec.mainClass="org.gridgain.training.foundations.Main"
+   mvn compile exec:java -Dexec.mainClass="org.gridgain.training.fundamentals.Main"
    ```
 
 ## Expected Output

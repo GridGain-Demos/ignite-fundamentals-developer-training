@@ -1,4 +1,4 @@
-# Apache Ignite Foundations Developer Training
+# Apache Ignite Fundamentals Developer Training
 
 New to Apache Ignite? This 90 minute hands-on training webinar is the fastest way for Java developers to get started with Ignite 3. In this session, you’ll learn how to spin up an Ignite cluster, connect a Java application, and work with distributed data using Ignite’s Java and SQL APIs.
 

@@ -9,7 +9,7 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <module.name>GridGain 9 Scratchpad</module.name>
+        <module.name>GridGain 9 Java API Demo</module.name>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

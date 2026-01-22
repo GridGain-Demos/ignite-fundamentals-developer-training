@@ -1,5 +1,6 @@
-package org.gridgain.training.foundations;
+package org.gridgain.training.fundamentals;
 
+import org.apache.ignite.catalog.annotations.*;
 import org.apache.ignite.client.IgniteClient;
 import org.apache.ignite.table.KeyValueView;
 import org.apache.ignite.table.RecordView;
@@ -90,6 +91,8 @@ public class Main {
     /**
      * POJO class representing an Album
      */
+    @Table(zone = @Zone(value = "Chinook", replicas = 2, storageProfiles = "default"),
+            colocateBy = {@ColumnRef("artistId")})
     public static class Album {
         // Default constructor required for serialization
         public Album() { }
@@ -101,8 +104,11 @@ public class Main {
             this.releaseYear = releaseYear;
         }
 
+        @Id
         private Integer albumId;
+        @Column(length = 25)
         private String title;
+        @Id
         private Integer artistId;
         private Integer releaseYear;
     }
