@@ -28,6 +28,10 @@ services:
     ports:
       - "10302:10300"
       - "10802:10800"
+#   cccc:
+#     image: gridgain/cloud-connector:2025-10-17
+#     volumes:
+#       - ./controlcenter.conf:/opt/gridgain-cloud-connector/application.properties
 
 configs:
   node_config:
