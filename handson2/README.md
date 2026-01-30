@@ -1,13 +1,11 @@
 # Hands-on #2: SQL
 
-This guide walks you through using Apache Ignite 3's SQL capabilities via the command-line interface. You'll set up a distributed Apache Ignite cluster, create and manipulate the Chinook database (a sample database representing a digital media store), and learn to leverage Ignite's powerful SQL features.
+This guide walks you through using Apache Ignite 3's SQL capabilities via the command-line interface. Using the cluster you set up in hands-on #1, you'll create and manipulate the Chinook database (a sample database representing a digital media store), and learn to leverage Ignite's powerful SQL features.
 
 ## Prerequisites
 
-* Docker and Docker Compose installed on your system
+* Completed hands-on #1 and have a running, initialized GridGain cluster
 * Basic familiarity with SQL
-* Command-line terminal access
-* 8GB+ of available RAM for running the containers
 * SQL directory with Chinook Database files downloaded
 
 ## Connecting to the Cluster Using Ignite CLI
@@ -26,6 +24,9 @@ docker run --rm -it \
   cli
 ```
 
+> [!NOTE]
+> Don't just copy-and-paste the command line from the previous exercise!
+
 This starts an interactive CLI container connected to the same Docker network as our cluster and mounts a volume containing the sql files for the Chinook Database. When prompted, connect to the first node by entering:
 
 ```
@@ -34,12 +35,9 @@ connect http://node1:10300
 
 You should see a message that you're connected to `http://node1:10300`.
 
-> [!NOTE]
-> The CLI container runs separately from your cluster nodes but connects to them over the Docker network. This separation follows best practices for management interfaces.
-
 ## Understanding Distributed Database Concepts
 
-Before we dive into creating the schema, let's understand how Apache Ignite distributes data across the cluster:
+Before we dive into creating the schema, let's understand how GridGain distributes data across the cluster:
 
 ```mermaid
 graph TD
@@ -66,11 +64,15 @@ Now that our cluster is running and initialized, we can start using SQL to creat
 
 ### Loading the database schema
 
-XXX
+1. Open `schema.sql` in a text editor or IDE. Examine the SQL. Check what what's familiar and what's different
+
+2. Once you're happy with the commands, enter them into your cluster with the following command:
 
 ```
 sql --file=/opt/gridgain/downloads/schema.sql
 ```
+
+3. You should see "Updated 0 rows." a few times, and no errors
 
 ### Database Entity Relationship
 
@@ -159,9 +161,11 @@ sql-cli> SELECT * FROM system.tables WHERE schema = 'PUBLIC';
 
 Now that we have our tables set up, let's populate them with sample data.
 
-### Adding Artists and Albums
+1. Exit the `sql-cli>` by typing `exit;`
 
-Let's start by adding some artists. Exit the `sql-cli>` by typing `exit;`. Then populate all our tables from the sql data file.
+2. Open the `data.sql` file in your text editor or IDE. Examine its contents. Again, what looks familiar and what looks new to you?
+
+3. Then populate all our tables from the sql data file:
 
 ```bash
 sql --file=/opt/gridgain/downloads/data.sql
@@ -265,12 +269,6 @@ FROM
     JOIN Artist ar ON a.ArtistId = ar.ArtistId
 LIMIT 10;
 ```
-
-> [!NOTE]
-> This complex query uses multiple CTEs to achieve what would typically be done with the RANK() window function. We first count tracks per album, then determine the maximum track count per artist, and finally join these results to identify albums with the most tracks for each artist.
-
-> [!TIP]
-> **Checkpoint**: Execute each of these more complex queries to ensure they run successfully. Pay attention to the results to verify they match what you'd expect based on the database structure and relationships.
 
 ## Data Manipulation in Ignite SQL
 
@@ -737,16 +735,6 @@ In this guide, you've learned:
 5. How to leverage advanced SQL features like CTEs and alternatives to window functions
 6. How to perform data manipulation operations in a distributed environment
 7. How to design analytical queries for business intelligence dashboards
-
-## What's Next
-
-Now that you've completed this tutorial, here are some suggested next steps:
-
-1. **Expand Your Ignite Knowledge**: Explore other Ignite features such as compute grid, machine learning, and streaming.
-2. **Build a Complete Application**: Create a full-stack application that uses Ignite as the backend database.
-3. **Explore Advanced Distributed Features**: Learn about partition awareness, affinity functions, and more complex topology configurations.
-4. **Performance Tuning**: Experiment with different configuration settings to optimize performance for your specific workload.
-5. **Integrate with Big Data Tools**: Connect Ignite to Hadoop, Spark, or other big data technologies.
 
 ## Conclusion
 

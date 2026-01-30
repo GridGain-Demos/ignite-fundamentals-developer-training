@@ -6,7 +6,7 @@ This guide walks you through the process of setting up and running an GridGain c
 
 - Docker and Docker Compose installed on your system
 - Basic familiarity with command-line operations
-- Java 11 or higher installed (for connecting to the cluster)
+- GridGain license file
 
 ## Setting Up an Apache Ignite 3 Cluster
 
@@ -26,7 +26,7 @@ graph TD
 
 ## Step 1: Understand the Docker Compose Configuration
 
-1. View the file named [`docker-compose.yml`](docker-compose.yaml) in the current directory:
+1. View the file named [`docker-compose.yaml`](docker-compose.yaml) in the current directory:
 
 ## Step 2: Start the GridGain Cluster
 
@@ -64,17 +64,26 @@ docker run --rm -it --network=gridgain9_default -v ./gridgain-license.json:/opt/
 connect http://node1:10300
 ```
 
+> [!NOTE]
+> The CLI container runs separately from your cluster nodes but connects to them over the Docker network. This separation follows best practices for management interfaces.
+
 4. Initialize the cluster with a name and metastorage group:
 
 ```
 cluster init --name=gridgain9 --metastorage-group=node1,node2,node3 --license=/opt/gridgain/downloads/gridgain-license.json
 ```
 
-5. Exit the CLI by typing `exit` or pressing Ctrl+D
+5. You should see the message "Cluster was initialized successfully"
 
 ## Step 4: Verify Your Cluster
 
-To verify your cluster is running correctly, you can use a simple Java client to connect to it. Create a simple test class that establishes a connection to the cluster.
+1. Type `cluster status` in the CLI
+
+2. You should see a count of the nodes and the status flagged as "active"
+
+3. Investigate the other features of the CLI and the cluster. A good starting point is the `help` command
+
+4. Exit the CLI by typing `exit` or pressing Ctrl+D
 
 ## Understanding Port Configuration
 

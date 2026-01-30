@@ -4,6 +4,7 @@ This guide walks you through creating a Java application that connects to an Apa
 
 ## Prerequisites
 
+* Completed hands-on #1 and #2 and have a running, initialized GridGain cluster with a schema and sample data loaded
 * JDK 11 or later
 * Maven
 * Docker and Docker Compose
@@ -121,4 +122,4 @@ Now that you've explored the basics of connecting to Ignite and interacting with
 * Explore data partitioning strategies
 * Investigate Ignite's distributed computing capabilities
 
-For more information, consult the [Apache Ignite 3 documentation](https://ignite.apache.org/docs/3.0.0/index).
+For more information, consult the [GridGain 9](https://www.gridgain.com/docs/index.html) or [Apache Ignite 3 documentation](https://ignite.apache.org/docs/3.0.0/index).
