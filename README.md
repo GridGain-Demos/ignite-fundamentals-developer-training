@@ -29,7 +29,7 @@ Java developers, architects, and engineers evaluating Apache Ignite or getting s
 Register for your place on the [GridGain website](https://www.gridgain.com/products/services/training/true-ignite-fundamentals-training-java).
 
 ## Prerequisites
-* GridGain license file (instructions will be emailed when you register)
+* GridGain license file. Instructions will be emailed when you register, but, in short, grab your key [here](https://www.gridgain.com/tryfree)
 * Docker and Docker Compose installed on your system
 * Basic familiarity with command-line operations
 * Java 11 or higher installed (for connecting to the cluster)
