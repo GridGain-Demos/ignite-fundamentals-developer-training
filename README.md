@@ -26,7 +26,7 @@ We’ll cover the core building blocks of Ignite – tables, schemas, partitioni
 Java developers, architects, and engineers evaluating Apache Ignite or getting started with Ignite 3 for distributed data and high-performance applications.
 
 ## Join us!
-Register for your place on [gridgain.com](https://www.gridgain.com).
+Register for your place on the [GridGain website](https://www.gridgain.com/products/services/training/true-ignite-fundamentals-training-java).
 
 ## Prerequisites
 * GridGain license file (instructions will be emailed when you register)
