@@ -5,6 +5,7 @@ import org.apache.ignite.client.IgniteClient;
 import org.apache.ignite.table.KeyValueView;
 import org.apache.ignite.table.RecordView;
 import org.apache.ignite.table.Tuple;
+import org.apache.ignite.tx.Transaction;
 
 import java.util.Objects;
 
@@ -41,7 +42,7 @@ public class Main {
      */
     private static void queryExistingTable(IgniteClient client) {
         System.out.println("\n--- Querying Album table ---");
-        try (var rs = client.sql().execute(null, "SELECT * FROM Album LIMIT 10")) {
+        try (var rs = client.sql().execute((Transaction) null, "SELECT * FROM Album LIMIT 10")) {
                 rs.forEachRemaining(row -> System.out.println("Album: " + row.stringValue("title")));
         }
     }
