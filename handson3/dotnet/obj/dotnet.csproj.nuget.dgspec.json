@@ -1,0 +1,67 @@
+{
+  "format": 1,
+  "restore": {
+    "/Users/stephen.darlington/Documents/ignite-foundations-developer-training/handson3/dotnet/dotnet.csproj": {}
+  },
+  "projects": {
+    "/Users/stephen.darlington/Documents/ignite-foundations-developer-training/handson3/dotnet/dotnet.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/stephen.darlington/Documents/ignite-foundations-developer-training/handson3/dotnet/dotnet.csproj",
+        "projectName": "dotnet",
+        "projectPath": "/Users/stephen.darlington/Documents/ignite-foundations-developer-training/handson3/dotnet/dotnet.csproj",
+        "packagesPath": "/Users/stephen.darlington/.nuget/packages/",
+        "outputPath": "/Users/stephen.darlington/Documents/ignite-foundations-developer-training/handson3/dotnet/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/stephen.darlington/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "GridGain.Ignite": {
+              "target": "Package",
+              "version": "[9.1.8, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet@8/8.0.124/libexec/sdk/8.0.124/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
