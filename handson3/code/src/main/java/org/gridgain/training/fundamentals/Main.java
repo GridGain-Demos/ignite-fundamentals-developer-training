@@ -6,6 +6,8 @@ import org.apache.ignite.table.KeyValueView;
 import org.apache.ignite.table.RecordView;
 import org.apache.ignite.table.Tuple;
 
+import java.util.Objects;
+
 /**
  * This example demonstrates connecting to an GridGain 9 cluster
  * and working with data using different table view patterns.
@@ -51,25 +53,25 @@ public class Main {
         System.out.println("\n--- Populating Artist and Album tables using different views ---");
 
         // 1. Using RecordView with Tuples
-        try (RecordView<Tuple> recordView = client.tables().table("Artist").recordView()) {
+        try (RecordView<Tuple> recordView = Objects.requireNonNull(client.tables().table("Artist")).recordView()) {
             recordView.upsert(null, Tuple.create().set("artistId", 276).set("name", "New Discovery Band"));
             System.out.println("Added record using RecordView with Tuple");
         }
 
         // 2. Using RecordView with POJOs
-        try (RecordView<Album> pojoView = client.tables().table("Album").recordView(Album.class)) {
+        try (RecordView<Album> pojoView = Objects.requireNonNull(client.tables().table("Album")).recordView(Album.class)) {
             pojoView.upsert(null, new Album(348, "First Light", 276, 2023));
             System.out.println("Added record using RecordView with POJO");
         }
 
         // 3. Using KeyValueView with Tuples
-        try (KeyValueView<Tuple, Tuple> keyValueView = client.tables().table("Artist").keyValueView()) {
+        try (KeyValueView<Tuple, Tuple> keyValueView = Objects.requireNonNull(client.tables().table("Artist")).keyValueView()) {
             keyValueView.put(null, Tuple.create().set("artistId", 277), Tuple.create().set("name", "New Order"));
             System.out.println("Added record using KeyValueView with Tuples");
         }
 
         // 4. Using KeyValueView with Native Types
-        try (KeyValueView<AlbumKey, AlbumValue> keyValuePojoView = client.tables().table("Album").keyValueView(AlbumKey.class, AlbumValue.class)) {
+        try (KeyValueView<AlbumKey, AlbumValue> keyValuePojoView = Objects.requireNonNull(client.tables().table("Album")).keyValueView(AlbumKey.class, AlbumValue.class)) {
             keyValuePojoView.put(null, new AlbumKey(349, 277), new AlbumValue("Technique", 1989));
             System.out.println("Added record using KeyValueView with Native Types");
         }
@@ -80,6 +82,7 @@ public class Main {
      */
     @Table(zone = @Zone(value = "Chinook", replicas = 2, storageProfiles = "default"),
             colocateBy = {@ColumnRef("artistId")})
+    @SuppressWarnings({"unused","FieldCanBeLocal"})
     public static class Album {
         // Default constructor required for serialization
         public Album() { }
@@ -100,12 +103,12 @@ public class Main {
         private Integer releaseYear;
     }
 
+    @SuppressWarnings({"unused", "FieldCanBeLocal"})
     public static class AlbumKey {
         private Integer albumId;
         private Integer artistId;
 
-        public AlbumKey() {
-        }
+        public AlbumKey() {}
 
         public AlbumKey(Integer albumId, Integer artistId) {
             this.albumId = albumId;
@@ -113,12 +116,12 @@ public class Main {
         }
     }
 
+    @SuppressWarnings({"unused", "FieldCanBeLocal"})
     public static class AlbumValue {
         private String title;
         private Integer releaseYear;
 
-        public AlbumValue() {
-        }
+        public AlbumValue() {}
 
         public AlbumValue(String title, Integer releaseYear) {
             this.title = title;
