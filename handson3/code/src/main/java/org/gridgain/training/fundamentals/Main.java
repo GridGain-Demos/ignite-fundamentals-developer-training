@@ -31,14 +31,11 @@ public class Main {
 
             // Demonstrate different ways to interact with tables
             populateTableWithDifferentViews(client);
-
-            // Query the new table using SQL API
-            queryNewTable(client);
         }
     }
 
     /**
-     * Queries the pre-created Person table using SQL
+     * Queries the pre-created Album table using SQL
      */
     private static void queryExistingTable(IgniteClient client) {
         System.out.println("\n--- Querying Album table ---");
@@ -75,16 +72,6 @@ public class Main {
         try (KeyValueView<AlbumKey, AlbumValue> keyValuePojoView = client.tables().table("Album").keyValueView(AlbumKey.class, AlbumValue.class)) {
             keyValuePojoView.put(null, new AlbumKey(349, 277), new AlbumValue("Technique", 1989));
             System.out.println("Added record using KeyValueView with Native Types");
-        }
-    }
-
-    /**
-     * Queries the newly created Person2 table using SQL
-     */
-    private static void queryNewTable(IgniteClient client) {
-        System.out.println("\n--- Querying Album table ---");
-        try (var rs = client.sql().execute(null, "SELECT * FROM Album WHERE artistId = ?", 277)) {
-                rs.forEachRemaining(row -> System.out.println("Album: " + row.stringValue("title")));
         }
     }
 
