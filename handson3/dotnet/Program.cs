@@ -15,7 +15,7 @@ namespace GridGain.Training.Fundamentals
     {
         public static async Task Main(string[] args)
         {
-            var addresses = new[]
+            var addresses = new	[]
             {
                 "localhost:10800",
                 "localhost:10801",
@@ -76,13 +76,11 @@ namespace GridGain.Training.Fundamentals
 
             await albumPojoView.UpsertAsync(
                 null,
-                new Album
-                {
-                    AlbumId = 348,
-                    Title = "First Light",
-                    ArtistId = 276,
-                    ReleaseYear = 2023
-                });
+                new Album(AlbumId: 348,
+                          Title: "First Light",
+                          ArtistId: 276,
+                          ReleaseYear: 2023
+                ));
 
             Console.WriteLine("Added record using RecordView with POCO");
 
@@ -102,8 +100,8 @@ namespace GridGain.Training.Fundamentals
 
             await albumKvPojoView.PutAsync(
                 null,
-                new AlbumKey { AlbumId = 349, ArtistId = 277 },
-                new AlbumValue { Title = "Technique", ReleaseYear = 1989 });
+                new AlbumKey (AlbumId: 349, ArtistId: 277),
+                new AlbumValue (Title: "Technique", ReleaseYear: 1989));
 
             Console.WriteLine("Added record using KeyValueView with Native Types");
         }
@@ -112,24 +110,16 @@ namespace GridGain.Training.Fundamentals
     /// <summary>
     /// POCO class representing an Album
     /// </summary>
-    public class Album
-    {
-        public int AlbumId { get; set; }
-        public string? Title { get; set; }
-        public int ArtistId { get; set; }
-        public int? ReleaseYear { get; set; }
-    }
+    public class Album (int AlbumId, string? Title, int ArtistId, int? ReleaseYear) {}
 
-    public class AlbumKey
-    {
-        public int AlbumId { get; set; }
-        public int ArtistId { get; set; }
-    }
+    /// <summary>
+    /// POCO class representing an Album key
+    /// </summary>
+    public record AlbumKey(int AlbumId, int ArtistId) {}
 
-    public class AlbumValue
-    {
-        public string? Title { get; set; }
-        public int? ReleaseYear { get; set; }
-    }
+    /// <summary>
+    /// POCO class representing an Album value
+    /// </summary>
+    public record AlbumValue(string? Title, int? ReleaseYear) {}
 }
 
