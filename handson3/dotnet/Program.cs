@@ -21,15 +21,10 @@ namespace GridGain.Training.Fundamentals
                 "localhost:10801",
                 "localhost:10802"
             };
-
-            using var client = await IgniteClient.StartAsync(new IgniteClientConfiguration
-            {
-                Endpoints = {
-                "localhost:10800",
-                "localhost:10801",
-                "localhost:10802"
-            }
-            });
+            
+            using var client = await IgniteClient.StartAsync(new IgniteClientConfiguration(
+                addresses
+            ));
 
             //Console.WriteLine($"Connected to the cluster: {string.Join(", ", client.Connections)}");
 
