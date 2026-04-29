@@ -1,0 +1,5 @@
+# GridGain work directories (persistent data)
+data/
+
+# Log directories
+logs/

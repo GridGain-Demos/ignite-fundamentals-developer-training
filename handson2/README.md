@@ -1,39 +1,15 @@
 # Hands-on #2: SQL
 
-This guide walks you through using Apache Ignite 3's SQL capabilities via the command-line interface. Using the cluster you set up in hands-on #1, you'll create and manipulate the Chinook database (a sample database representing a digital media store), and learn to leverage Ignite's powerful SQL features.
+This guide walks you through using GridGain 8's SQL capabilities via the `sqlline` command-line tool. Using the cluster you set up in hands-on #1, you'll create and manipulate the Chinook database (a sample database representing a digital media store) and learn to leverage GridGain's distributed SQL features.
 
 ## Prerequisites
 
-* Completed hands-on #1 and have a running, initialized GridGain cluster
+* Completed hands-on #1 and have a running GridGain cluster
 * Basic familiarity with SQL
-* SQL directory with Chinook Database files downloaded
 
-## Connecting to the Cluster Using Ignite CLI
+## Connecting to the Cluster Using sqlline
 
-Now we'll connect to our running cluster using GridGain's command-line interface (CLI).
-
-### Starting the CLI
-
-In your terminal, run:
-
-```bash
-docker run --rm -it \
-  --network=gridgain9_default \
-  -v ./sql/:/opt/gridgain/downloads/ \
-  gridgain/gridgain9:9.1.8 \
-  cli
-```
-
-> [!NOTE]
-> Don't just copy-and-paste the command line from the previous exercise!
-
-This starts an interactive CLI container connected to the same Docker network as our cluster and mounts a volume containing the sql files for the Chinook Database. When prompted, connect to the first node by entering:
-
-```
-connect http://node1:10300
-```
-
-You should see a message that you're connected to `http://node1:10300`.
+We'll use `sqlline` — a JDBC command-line tool bundled inside the GridGain container — to run SQL against the cluster.
 
 ## Understanding Distributed Database Concepts
 
@@ -56,27 +32,27 @@ graph TD
 ```
 
 > [!IMPORTANT]
-> In Apache Ignite, data is distributed across nodes for scalability and fault tolerance. Distribution zones control how many copies (replicas) of your data exist and on which nodes they're stored. Colocation ensures that related data is kept on the same node to optimize joins.
+> In GridGain, data is distributed across nodes for scalability and fault tolerance. Each cache has a **mode** — *partitioned* (data spread across nodes) or *replicated* (full copy on every node). **Affinity colocation** ensures that related data from different tables is kept on the same node so that joins execute locally without network round-trips.
 
 ## Creating the Chinook Database Schema
 
-Now that our cluster is running and initialized, we can start using SQL to create and work with data. The Chinook database represents a digital music store, with tables for artists, albums, tracks, customers, and sales.
+### Loading the Database Schema
 
-### Loading the database schema
+1. Open `sql/schema.sql` in a text editor or IDE. Examine the SQL — notice the `WITH` clause on each table that specifies the cache mode (`template=partitioned` or `template=replicated`) and colocation settings (`affinityKey`).
 
-1. Open `schema.sql` in a text editor or IDE. Examine the SQL. Check what what's familiar and what's different
+2. Copy the SQL files into the container:
 
-2. Once you're happy with the commands, enter them into your cluster with the following command:
-
-```
-sql --file=/opt/gridgain/downloads/schema.sql
+```bash
+docker cp handson2/sql/. "$(docker compose -f docker/docker-compose.yaml ps -q node1)":/opt/gridgain/work/sql/
 ```
 
-3. You should see "Updated 0 rows." a few times, and no errors
+3. Load the schema:
+
+```bash
+docker compose -f docker/docker-compose.yaml exec node1 /opt/gridgain/bin/sqlline.sh -u jdbc:ignite:thin://node1:10800 -f /opt/gridgain/work/sql/schema.sql
+```
 
 ### Database Entity Relationship
-
-Here's the entity relationship diagram for our Chinook database:
 
 ```mermaid
 erDiagram
@@ -92,173 +68,82 @@ erDiagram
     TRACK ||--o{ PLAYLISTTRACK : appears-in
 ```
 
-### Examine the tables
+### Key Schema Concepts
 
-Your instructor will talk through some of the key features:
+Your instructor will talk through some key GridGain 8 concepts visible in the schema:
 
-* Zones
-* Tables
-* Colocation and replication
-
-### Entering SQL Mode
-
-To start working with SQL, enter SQL mode in the CLI:
-
-```
-sql
-```
-
-Your prompt should change to `sql-cli>` indicating you're now in SQL mode.
-
-```text
-[node1]> sql
-sql-cli>
-```
+* **Cache mode** — `partitioned` (data spread across nodes for scale) vs `replicated` (full copy on every node for fast lookups). In the DDL, this is set via `template=partitioned` or `template=replicated` in the `WITH` clause.
+* **Affinity colocation** — the `affinityKey` parameter keeps related rows from different tables on the same node. For example, all Albums by Artist 22 land on the same node as Artist 22, so joins between them execute locally.
+* **Backups** — `backups=1` means one backup copy of each partition exists on another node for fault tolerance.
 
 ### Verifying Table Creation
 
-Let's confirm that all our tables were created successfully:
-
-```sql
-SELECT * FROM system.tables WHERE schema = 'PUBLIC';
-```
-
-This query checks the system tables to verify that our tables exist. You should see a list of all the tables we've created.
+Start sqlline interactively:
 
 ```bash
-sql-cli> SELECT * FROM system.tables WHERE schema = 'PUBLIC';
-╔════════╤═══════════════╤════╤═════════════╤═══════════════════╤═════════════════╤══════════════════════╗
-║ SCHEMA │ NAME          │ ID │ PK_INDEX_ID │ ZONE              │ STORAGE_PROFILE │ COLOCATION_KEY_INDEX ║
-╠════════╪═══════════════╪════╪═════════════╪═══════════════════╪═════════════════╪══════════════════════╣
-║ PUBLIC │ ALBUM         │ 20 │ 21          │ CHINOOK           │ default         │ ARTISTID             ║
-╟────────┼───────────────┼────┼─────────────┼───────────────────┼─────────────────┼──────────────────────╢
-║ PUBLIC │ GENRE         │ 22 │ 23          │ CHINOOKREPLICATED │ default         │ GENREID              ║
-╟────────┼───────────────┼────┼─────────────┼───────────────────┼─────────────────┼──────────────────────╢
-║ PUBLIC │ ARTIST        │ 18 │ 19          │ CHINOOK           │ default         │ ARTISTID             ║
-╟────────┼───────────────┼────┼─────────────┼───────────────────┼─────────────────┼──────────────────────╢
-║ PUBLIC │ TRACK         │ 26 │ 27          │ CHINOOK           │ default         │ ALBUMID              ║
-╟────────┼───────────────┼────┼─────────────┼───────────────────┼─────────────────┼──────────────────────╢
-║ PUBLIC │ PLAYLIST      │ 36 │ 37          │ CHINOOK           │ default         │ PLAYLISTID           ║
-╟────────┼───────────────┼────┼─────────────┼───────────────────┼─────────────────┼──────────────────────╢
-║ PUBLIC │ PLAYLISTTRACK │ 38 │ 39          │ CHINOOK           │ default         │ PLAYLISTID, TRACKID  ║
-╟────────┼───────────────┼────┼─────────────┼───────────────────┼─────────────────┼──────────────────────╢
-║ PUBLIC │ MEDIATYPE     │ 24 │ 25          │ CHINOOKREPLICATED │ default         │ MEDIATYPEID          ║
-╟────────┼───────────────┼────┼─────────────┼───────────────────┼─────────────────┼──────────────────────╢
-║ PUBLIC │ INVOICELINE   │ 34 │ 35          │ CHINOOK           │ default         │ INVOICEID            ║
-╟────────┼───────────────┼────┼─────────────┼───────────────────┼─────────────────┼──────────────────────╢
-║ PUBLIC │ EMPLOYEE      │ 28 │ 29          │ CHINOOK           │ default         │ EMPLOYEEID           ║
-╟────────┼───────────────┼────┼─────────────┼───────────────────┼─────────────────┼──────────────────────╢
-║ PUBLIC │ CUSTOMER      │ 30 │ 31          │ CHINOOK           │ default         │ CUSTOMERID           ║
-╟────────┼───────────────┼────┼─────────────┼───────────────────┼─────────────────┼──────────────────────╢
-║ PUBLIC │ INVOICE       │ 32 │ 33          │ CHINOOK           │ default         │ CUSTOMERID           ║
-╚════════╧═══════════════╧════╧═════════════╧═══════════════════╧═════════════════╧══════════════════════╝
+docker compose -f docker/docker-compose.yaml exec node1 /opt/gridgain/bin/sqlline.sh -u jdbc:ignite:thin://node1:10800
 ```
 
-> [!TIP]
-> **Checkpoint**: Verify that all tables appear in the system.tables output with their proper zones and colocation settings before proceeding to the next section.
+Query the system tables view to see all tables, their cache names, and affinity key columns:
+
+```sql
+SELECT TABLE_NAME, CACHE_NAME, AFFINITY_KEY_COLUMN FROM SYS.TABLES;
+```
+
+You should see all 11 Chinook tables listed with their cache names and affinity key settings.
 
 ## Inserting Sample Data
 
-Now that we have our tables set up, let's populate them with sample data.
-
-1. Exit the `sql-cli>` by typing `exit;`
-
-2. Open the `data.sql` file in your text editor or IDE. Examine its contents. Again, what looks familiar and what looks new to you?
-
-3. Then populate all our tables from the sql data file:
+Load the data (the SQL files were already copied in the previous step):
 
 ```bash
-sql --file=/opt/gridgain/downloads/data.sql
+docker compose -f docker/docker-compose.yaml exec node1 /opt/gridgain/bin/sqlline.sh -u jdbc:ignite:thin://node1:10800 -f /opt/gridgain/work/sql/data.sql
 ```
+
+Verify row counts — start sqlline interactively:
 
 ```bash
-[node1]> sql --file=/opt/gridgain/downloads/data.sql
-Updated 275 rows.
-Updated 347 rows.
-Updated 25 rows.
-Updated 5 rows.
-Updated 1000 rows.
-Updated 1000 rows.
-Updated 1000 rows.
-Updated 503 rows.
-Updated 8 rows.
-Updated 59 rows.
-Updated 412 rows.
-Updated 1000 rows.
-Updated 1000 rows.
-Updated 240 rows.
-Updated 18 rows.
-Updated 1000 rows.
-Updated 1000 rows.
-Updated 1000 rows.
-Updated 1000 rows.
-Updated 1000 rows.
-Updated 1000 rows.
-Updated 1000 rows.
-Updated 1000 rows.
-Updated 715 rows.
+docker compose -f docker/docker-compose.yaml exec node1 /opt/gridgain/bin/sqlline.sh -u jdbc:ignite:thin://node1:10800
 ```
 
-> [!TIP]
-> **Checkpoint**: Verify that all the data has been loaded successfully by checking that the "Updated X rows" messages match the expected row counts for each file.
+Then run:
 
-## Querying Data in Ignite SQL
+```sql
+SELECT 'Artist' AS tbl, COUNT(*) AS cnt FROM Artist
+UNION ALL SELECT 'Album', COUNT(*) FROM Album
+UNION ALL SELECT 'Track', COUNT(*) FROM Track
+UNION ALL SELECT 'Customer', COUNT(*) FROM Customer
+UNION ALL SELECT 'Invoice', COUNT(*) FROM Invoice;
+```
 
-Now that we have data in our tables, let's run some SQL queries to explore the Chinook database.
+Expected: Artist 275, Album 347, Track 3503, Customer 59, Invoice 412.
+
+## Querying Data
 
 ### Basic Queries
 
-Let's return to the `sql-cli>` and start with some simple SELECT queries:
-
-```bash
-sql
-```
+All queries below are run inside sqlline.
 
 ```sql
 -- Get all artists
-SELECT * FROM Artist;
+SELECT * FROM Artist LIMIT 20;
+```
 
+```sql
 -- Get all albums for a specific artist
 SELECT * FROM Album WHERE ArtistId = 3;
+```
 
+```sql
 -- Get all tracks for a specific album
 SELECT * FROM Track WHERE AlbumId = 133;
 ```
 
-```bash
-sql-cli> SELECT * FROM Track WHERE AlbumId = 133;
-╔═════════╤═════════════════════════════════════════╤═════════╤═════════════╤═════════╤════════════════════════════════════════════════════════╤══════════════╤══════════╤═══════════╗
-║ TRACKID │ NAME                                    │ ALBUMID │ MEDIATYPEID │ GENREID │ COMPOSER                                               │ MILLISECONDS │ BYTES    │ UNITPRICE ║
-╠═════════╪═════════════════════════════════════════╪═════════╪═════════════╪═════════╪════════════════════════════════════════════════════════╪══════════════╪══════════╪═══════════╣
-║ 1633    │ Ramble On                               │ 133     │ 1           │ 1       │ Jimmy Page, Robert Plant                               │ 275591       │ 9199710  │ 0.99      ║
-╟─────────┼─────────────────────────────────────────┼─────────┼─────────────┼─────────┼────────────────────────────────────────────────────────┼──────────────┼──────────┼───────────╢
-║ 1628    │ What Is And What Should Never Be        │ 133     │ 1           │ 1       │ Jimmy Page, Robert Plant                               │ 287973       │ 9369385  │ 0.99      ║
-╟─────────┼─────────────────────────────────────────┼─────────┼─────────────┼─────────┼────────────────────────────────────────────────────────┼──────────────┼──────────┼───────────╢
-║ 1631    │ Heartbreaker                            │ 133     │ 1           │ 1       │ Jimmy Page, Robert Plant, John Paul Jones, John Bonham │ 253988       │ 8387560  │ 0.99      ║
-╟─────────┼─────────────────────────────────────────┼─────────┼─────────────┼─────────┼────────────────────────────────────────────────────────┼──────────────┼──────────┼───────────╢
-║ 1630    │ Thank You                               │ 133     │ 1           │ 1       │ Jimmy Page, Robert Plant                               │ 287791       │ 9337392  │ 0.99      ║
-╟─────────┼─────────────────────────────────────────┼─────────┼─────────────┼─────────┼────────────────────────────────────────────────────────┼──────────────┼──────────┼───────────╢
-║ 1627    │ Whole Lotta Love                        │ 133     │ 1           │ 1       │ Jimmy Page, Robert Plant, John Paul Jones, John Bonham │ 334471       │ 11026243 │ 0.99      ║
-╟─────────┼─────────────────────────────────────────┼─────────┼─────────────┼─────────┼────────────────────────────────────────────────────────┼──────────────┼──────────┼───────────╢
-║ 1629    │ The Lemon Song                          │ 133     │ 1           │ 1       │ Jimmy Page, Robert Plant, John Paul Jones, John Bonham │ 379141       │ 12463496 │ 0.99      ║
-╟─────────┼─────────────────────────────────────────┼─────────┼─────────────┼─────────┼────────────────────────────────────────────────────────┼──────────────┼──────────┼───────────╢
-║ 1632    │ Living Loving Maid (She's Just A Woman) │ 133     │ 1           │ 1       │ Jimmy Page, Robert Plant                               │ 159216       │ 5219819  │ 0.99      ║
-╟─────────┼─────────────────────────────────────────┼─────────┼─────────────┼─────────┼────────────────────────────────────────────────────────┼──────────────┼──────────┼───────────╢
-║ 1634    │ Moby Dick                               │ 133     │ 1           │ 1       │ John Bonham, John Paul Jones, Jimmy Page               │ 260728       │ 8664210  │ 0.99      ║
-╟─────────┼─────────────────────────────────────────┼─────────┼─────────────┼─────────┼────────────────────────────────────────────────────────┼──────────────┼──────────┼───────────╢
-║ 1635    │ Bring It On Home                        │ 133     │ 1           │ 1       │ Jimmy Page, Robert Plant                               │ 259970       │ 8494731  │ 0.99      ║
-╚═════════╧═════════════════════════════════════════╧═════════╧═════════════╧═════════╧════════════════════════════════════════════════════════╧══════════════╧══════════╧═══════════╝
-```
-
-> [!TIP]
-> **Checkpoint**: Run each of these basic queries and verify that you're getting reasonable results before moving on to more complex queries.
-
 ### Joins
 
-Now let's try some more complex queries with joins:
+Get tracks with artist and album information:
 
 ```sql
--- Get all tracks with artist and album information
 SELECT
     t.Name AS TrackName,
     a.Title AS AlbumTitle,
@@ -270,13 +155,11 @@ FROM
 LIMIT 10;
 ```
 
-## Data Manipulation in Ignite SQL
-
-Let's explore how to modify data using SQL in Ignite.
+## Data Manipulation
 
 ### Understanding Distributed Updates
 
-When you update data in a distributed database, the changes need to be coordinated across multiple nodes:
+When you write data to a partitioned cache with backups, GridGain updates the primary copy first, then replicates the change to backup nodes. By default, the write synchronization mode is `PRIMARY_SYNC` — the client gets confirmation once the primary node has the data, and the backup is updated asynchronously. For stronger consistency, caches can be configured with `FULL_SYNC` mode, where the client waits for both primary and backup to confirm. See [Configuring Backups](https://www.gridgain.com/docs/gridgain8/latest/developers-guide/configuring-caches/configuring-backups) for details.
 
 ```mermaid
 sequenceDiagram
@@ -293,136 +176,97 @@ sequenceDiagram
 
 ### Inserting New Data
 
-Let's add a new artist and album:
+Insert a new artist:
 
 ```sql
--- Insert a new artist
-INSERT INTO Artist (ArtistId, Name)
-VALUES (276, 'New Discovery Band');
+INSERT INTO Artist (ArtistId, Name) VALUES (276, 'New Discovery Band');
+```
 
--- Insert a new album for this artist
-INSERT INTO Album (AlbumId, Title, ArtistId, ReleaseYear)
-VALUES (348, 'First Light', 276, 2023);
+Insert a new album for this artist:
 
--- Verify the insertions
+```sql
+INSERT INTO Album (AlbumId, Title, ArtistId, ReleaseYear) VALUES (348, 'First Light', 276, 2023);
+```
+
+Verify the insertions:
+
+```sql
 SELECT * FROM Artist WHERE ArtistId = 276;
+```
+
+```sql
 SELECT * FROM Album WHERE AlbumId = 348;
 ```
 
 ### Updating Existing Data
 
-Now let's update some of our existing data:
-
 ```sql
--- Update the album release year
-UPDATE Album
-SET ReleaseYear = 2024
-WHERE AlbumId = 348;
-
--- Update the artist name
-UPDATE Artist
-SET Name = 'New Discovery Ensemble'
-WHERE ArtistId = 276;
-
--- Verify the updates
-SELECT * FROM Artist WHERE ArtistId = 276;
-SELECT * FROM Album WHERE AlbumId = 348;
+UPDATE Album SET ReleaseYear = 2024 WHERE AlbumId = 348 AND ArtistId = 276;
 ```
 
-> [!NOTE]
-> In a distributed database like Ignite, these updates are automatically propagated to all replicas. The primary copy is updated first, then the changes are sent to the backup copies on other nodes.
+```sql
+UPDATE Artist SET Name = 'New Discovery Ensemble' WHERE ArtistId = 276;
+```
 
 ### Deleting Data
 
-Finally, let's clean up by deleting the data we added:
+```sql
+DELETE FROM Album WHERE AlbumId = 348 AND ArtistId = 276;
+```
 
 ```sql
--- Delete the album
-DELETE FROM Album WHERE AlbumId = 348;
-
--- Delete the artist
 DELETE FROM Artist WHERE ArtistId = 276;
-
--- Verify the deletions
-SELECT * FROM Artist WHERE ArtistId = 276;
-SELECT * FROM Album WHERE AlbumId = 348;
 ```
 
 ## Advanced SQL Features
 
-Let's explore some of Ignite's more advanced SQL features.
-
-### Querying System Views
-
-Ignite provides system views that let you inspect cluster metadata:
+### Creating Indexes
 
 ```sql
--- View all tables in the cluster
-SELECT * FROM system.tables;
-
--- View all zones
-SELECT * FROM system.zones;
-
--- View all columns for a specific table
-SELECT * FROM system.table_columns WHERE TABLE_NAME = 'TRACK';
+CREATE INDEX idx_track_name ON Track (Name);
 ```
+
+```sql
+CREATE INDEX idx_album_artist ON Album (ArtistId, Title);
+```
+
+```sql
+CREATE INDEX idx_customer_email ON Customer (Email);
+```
+
+### Execution Plans
+
+You can inspect how GridGain processes a query with EXPLAIN:
+
+```sql
+EXPLAIN SELECT
+    a.Title,
+    ar.Name
+FROM
+    Album a
+    JOIN Artist ar ON a.ArtistId = ar.ArtistId
+WHERE ar.ArtistId = 22;
+```
+
+The plan shows which indexes are used for the join. Look for `AFFINITY_KEY` — this indicates the join uses the affinity key index, meaning the data is colocated and the join executes locally on the node that owns Artist 22's partition.
 
 > [!NOTE]
-> System views provide important metadata about your cluster configuration. They're essential for monitoring and troubleshooting in production environments.
+> EXPLAIN shows the query plan — indexes used and join order. The distributed execution layer (how work is split across nodes) is transparent. Colocation benefits don't appear explicitly in the plan; they show up as faster execution because no data needs to move between nodes.
 
-### Distribution of Data in the Cluster
+### Colocation Strategy Summary
 
-```mermaid
-graph TD
-    subgraph "Node 1"
-    A1[Primary Data]
-    A2[Backup Data]
-    end
+Affinity colocation groups related rows from different tables onto the same node, so joins between them don't require network round-trips:
 
-    subgraph "Node 2"
-    B1[Primary Data]
-    B2[Backup Data]
-    end
+* Albums are colocated by `ArtistId` — all albums by a given artist live on the same node as that artist
+* Tracks are colocated by `AlbumId` — all tracks on a given album live with that album
+* Invoices are colocated by `CustomerId` — a customer's invoices live with the customer record
+* InvoiceLines are colocated by `InvoiceId` — line items live with their parent invoice
 
-    subgraph "Node 3"
-    C1[Primary Data]
-    C2[Backup Data]
-    end
-
-    A1 -->|Replicated To| B2
-    B1 -->|Replicated To| C2
-    C1 -->|Replicated To| A2
-```
-
-### Creating Indexes for Better Performance
-
-Let's add some indexes to improve query performance:
-
-```sql
--- Create an index on the Name column of the Track table
-CREATE INDEX idx_track_name ON Track (Name);
-
--- Create a composite index on Artist and Album
-CREATE INDEX idx_album_artist ON Album (ArtistId, Title);
-
--- Create a hash index for lookups by email
-CREATE INDEX idx_customer_email ON Customer USING HASH (Email);
-
--- Check index information
-SELECT * FROM system.indexes;
-```
-
-> [!IMPORTANT]
-> Indexes improve query performance but come with maintenance costs. Each write operation must also update all indexes. Choose indexes that support your most common query patterns rather than indexing everything.
-
-## Creating a Dashboard Using SQL
-
-Let's create SQL queries that could be used for a music store dashboard. These queries could be saved and run periodically to generate reports.
+## Dashboard Queries
 
 ### Monthly Sales Summary
 
 ```sql
--- Monthly sales summary for the last 12 months
 SELECT
     CAST(EXTRACT(YEAR FROM i.InvoiceDate) AS VARCHAR) || '-' ||
     CASE
@@ -431,24 +275,16 @@ SELECT
         ELSE CAST(EXTRACT(MONTH FROM i.InvoiceDate) AS VARCHAR)
     END AS YearMonth,
     COUNT(DISTINCT i.InvoiceId) AS InvoiceCount,
-    COUNT(DISTINCT i.CustomerId) AS CustomerCount,
-    SUM(i.Total) AS MonthlyRevenue,
-    AVG(i.Total) AS AverageOrderValue
-FROM
-    Invoice i
-GROUP BY
-    EXTRACT(YEAR FROM i.InvoiceDate), EXTRACT(MONTH FROM i.InvoiceDate)
-ORDER BY
-    YearMonth DESC;
+    SUM(i.Total) AS MonthlyRevenue
+FROM Invoice i
+GROUP BY EXTRACT(YEAR FROM i.InvoiceDate), EXTRACT(MONTH FROM i.InvoiceDate)
+ORDER BY YearMonth DESC
+LIMIT 12;
 ```
-
-> [!NOTE]
-> This query formats the year and month into a sortable string (YYYY-MM) while calculating several key business metrics. This is a common pattern for time-series dashboards.
 
 ### Top Selling Genres
 
 ```sql
--- Top selling genres by revenue
 SELECT
     g.Name AS Genre,
     SUM(il.UnitPrice * il.Quantity) AS Revenue
@@ -456,290 +292,54 @@ FROM
     InvoiceLine il
     JOIN Track t ON il.TrackId = t.TrackId
     JOIN Genre g ON t.GenreId = g.GenreId
-GROUP BY
-    g.Name
-ORDER BY
-    Revenue DESC;
+GROUP BY g.Name
+ORDER BY Revenue DESC;
 ```
 
-### Sales Performance by Employee
+### Top 20 Longest Tracks
 
 ```sql
--- Sales performance by employee
 SELECT
-    e.EmployeeId,
-    e.FirstName || ' ' || e.LastName AS EmployeeName,
-    COUNT(DISTINCT i.InvoiceId) AS TotalInvoices,
-    COUNT(DISTINCT i.CustomerId) AS UniqueCustomers,
-    SUM(i.Total) AS TotalSales
-FROM
-    Employee e
-    JOIN Customer c ON e.EmployeeId = c.SupportRepId
-    JOIN Invoice i ON c.CustomerId = i.CustomerId
-GROUP BY
-    e.EmployeeId, e.FirstName, e.LastName
-ORDER BY
-    TotalSales DESC;
-```
-
-### Top 20 Longest Tracks with Genres
-
-```sql
--- Top 20 longest tracks with genre information
-SELECT
-    t.trackid,
-    t.name AS track_name,
-    g.name AS genre_name,
-    ROUND(t.milliseconds / (1000 * 60), 2) AS duration_minutes
-FROM
-    track t
-    JOIN genre g ON t.genreId = g.genreId
-WHERE
-    t.genreId < 17
-ORDER BY
-    duration_minutes DESC
-LIMIT
-    20;
-```
-
-### Visualizing Query Results
-
-Dashboard applications can connect to Ignite using JDBC drivers and visualize the results of these queries:
-
-```mermaid
-graph TD
-    A[Apache Ignite Cluster] --> B[JDBC Connection]
-    B --> C[Dashboard Application]
-    C --> D[Monthly Sales Chart]
-    C --> E[Genre Revenue Chart]
-    C --> F[Employee Performance Chart]
-    C --> G[Track Length Analysis]
-```
-
-### Customer Purchase Patterns by Month
-
-```sql
--- Customer purchase patterns by month
-SELECT
-    c.CustomerId,
-    c.FirstName || ' ' || c.LastName AS CustomerName,
-    CAST(EXTRACT(YEAR FROM i.InvoiceDate) AS VARCHAR) || '-' ||
-    CASE
-        WHEN EXTRACT(MONTH FROM i.InvoiceDate) < 10
-        THEN '0' || CAST(EXTRACT(MONTH FROM i.InvoiceDate) AS VARCHAR)
-        ELSE CAST(EXTRACT(MONTH FROM i.InvoiceDate) AS VARCHAR)
-    END AS YearMonth,
-    COUNT(DISTINCT i.InvoiceId) AS NumberOfPurchases,
-    SUM(i.Total) AS TotalSpent,
-    SUM(i.Total) / COUNT(DISTINCT i.InvoiceId) AS AveragePurchaseValue
-FROM
-    Customer c
-    JOIN Invoice i ON c.CustomerId = i.CustomerId
-GROUP BY
-    c.CustomerId, c.FirstName, c.LastName,
-    EXTRACT(YEAR FROM i.InvoiceDate), EXTRACT(MONTH FROM i.InvoiceDate)
-ORDER BY
-    c.CustomerId, YearMonth;
-```
-
-> [!TIP]
-> **Checkpoint**: Execute these dashboard queries and examine the output to understand how they could be used in a business intelligence application. Think about how you might visualize each result set.
-
-## Performance Tuning with Colocated Tables
-
-One of the key advantages of Ignite is its ability to optimize joins through data colocation. Let's explore this with our existing colocated tables.
-
-### Verifying Colocated Queries
-
-To see if a query benefits from colocation, you can check the execution plan:
-
-```sql
-EXPLAIN PLAN FOR
-SELECT
-    il.InvoiceId,
-    COUNT(il.InvoiceLineId) AS LineItemCount,
-    SUM(il.UnitPrice * il.Quantity) AS InvoiceTotal,
+    t.TrackId,
     t.Name AS TrackName,
-    a.Title AS AlbumTitle
+    g.Name AS GenreName,
+    ROUND(t.Milliseconds / (1000.0 * 60), 2) AS DurationMinutes
 FROM
-    InvoiceLine il
-    JOIN Track t ON il.TrackId = t.TrackId
-    JOIN Album a ON t.AlbumId = a.AlbumId
-WHERE
-    il.InvoiceId = 1
-GROUP BY
-    il.InvoiceId, t.Name, a.Title;
+    Track t
+    JOIN Genre g ON t.GenreId = g.GenreId
+WHERE t.GenreId < 17
+ORDER BY DurationMinutes DESC
+LIMIT 20;
 ```
-
-```bash
-╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
-║ PLAN                                                                                                        ║
-╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ Project                                                                                                     ║
-║     fieldNames: [INVOICEID, LINEITEMCOUNT, INVOICETOTAL, TRACKNAME, ALBUMTITLE]                             ║
-║     projection: [INVOICEID, LINEITEMCOUNT, INVOICETOTAL, TRACKNAME, ALBUMTITLE]                             ║
-║     est: (rows=9955526)                                                                                     ║
-║   ColocatedHashAggregate                                                                                    ║
-║       fieldNames: [INVOICEID, TRACKNAME, ALBUMTITLE, LINEITEMCOUNT, INVOICETOTAL]                           ║
-║       group: [INVOICEID, TRACKNAME, ALBUMTITLE]                                                             ║
-║       aggregation: [COUNT(), SUM($f4)]                                                                      ║
-║       est: (rows=9955526)                                                                                   ║
-║     Project                                                                                                 ║
-║         fieldNames: [INVOICEID, TRACKNAME, ALBUMTITLE, $f4]                                                 ║
-║         projection: [INVOICEID, NAME, TITLE, *(UNITPRICE, QUANTITY)]                                        ║
-║         est: (rows=20400668)                                                                                ║
-║       MergeJoin                                                                                             ║
-║           predicate: =(TRACKID$0, TRACKID)                                                                  ║
-║           fieldNames: [TRACKID, NAME, ALBUMID, ALBUMID$0, TITLE, INVOICEID, TRACKID$0, UNITPRICE, QUANTITY] ║
-║           type: inner                                                                                       ║
-║           est: (rows=20400668)                                                                              ║
-║         HashJoin                                                                                            ║
-║             predicate: =(ALBUMID, ALBUMID$0)                                                                ║
-║             fieldNames: [TRACKID, NAME, ALBUMID, ALBUMID$0, TITLE]                                          ║
-║             type: inner                                                                                     ║
-║             est: (rows=182331)                                                                              ║
-║           Exchange                                                                                          ║
-║               distribution: single                                                                          ║
-║               est: (rows=3503)                                                                              ║
-║             Sort                                                                                            ║
-║                 collation: [TRACKID ASC]                                                                    ║
-║                 est: (rows=3503)                                                                            ║
-║               TableScan                                                                                     ║
-║                   table: PUBLIC.TRACK                                                                       ║
-║                   fieldNames: [TRACKID, NAME, ALBUMID]                                                      ║
-║                   est: (rows=3503)                                                                          ║
-║           Exchange                                                                                          ║
-║               distribution: single                                                                          ║
-║               est: (rows=347)                                                                               ║
-║             TableScan                                                                                       ║
-║                 table: PUBLIC.ALBUM                                                                         ║
-║                 fieldNames: [ALBUMID, TITLE]                                                                ║
-║                 est: (rows=347)                                                                             ║
-║         Exchange                                                                                            ║
-║             distribution: single                                                                            ║
-║             est: (rows=746)                                                                                 ║
-║           Sort                                                                                              ║
-║               collation: [TRACKID ASC]                                                                      ║
-║               est: (rows=746)                                                                               ║
-║             TableScan                                                                                       ║
-║                 table: PUBLIC.INVOICELINE                                                                   ║
-║                 predicate: =(INVOICEID, 1)                                                                  ║
-║                 fieldNames: [INVOICEID, TRACKID, UNITPRICE, QUANTITY]                                       ║
-║                 est: (rows=746)                                                                             ║
-╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
-```
-
-This execution plan demonstrates how Apache Ignite processes a query involving multiple joined tables with defined colocation relationships:
-
-#### Key Observations in the Execution Plan
-
-**ColocatedHashAggregate Operation**: The plan uses a `ColocatedHashAggregate` operation, which indicates Ignite recognizes that portions of the aggregation can happen on colocated data before results are combined. This reduces network transfer during the GROUP BY operation.
-
-**Exchange Operations**: Several `Exchange(distribution=[single])` operations appear in the plan, indicating data movement between nodes is still necessary. These operations are applied to:
-
-* Album table results
-* Track table results
-* InvoiceLine filtered results
-
-**NestedLoopJoin Implementation**: The plan shows two `NestedLoopJoin` operations rather than hash joins, which suggests the optimizer has determined this is more efficient for the data volumes involved.
-
-**Filter Pushdown**: The filter `il.InvoiceId = 1` is pushed down to the TableScan operation on InvoiceLine, which is an important optimization that minimizes the data being processed.
-
-#### Colocation Impact
-
-While full colocation benefits aren't visible in this specific plan (possibly due to limited test data), there are aspects that show Ignite is considering colocation:
-
-* The `ColocatedHashAggregate` operation specifically leverages colocation for the aggregation phase.
-* The query execution begins with individual table scans before joining, allowing each node to work with its local data first.
-* The execution metrics show relatively modest network costs, indicating some colocation benefits.
-
-> [!IMPORTANT]
-> The relatively high network costs in this plan (compared to CPU and IO) suggest that in this specific query, data is being moved between nodes. In a larger production cluster with more data, you would likely see more significant benefits from colocation.
-
-#### Optimizing for Better Colocation
-
-To further leverage colocation benefits:
-
-* Ensure your data volume is significant enough to make distributed optimization worthwhile.
-* Design queries that filter on the colocation keys when possible.
-* Consider modifying the colocation strategy if certain join patterns are very common in your workload.
-
-In production environments with larger datasets distributed across many nodes, the performance improvements from colocation become much more significant than in test environments.
-
-### Custom Colocation Strategies
-
-When creating tables, we can specify colocation to optimize specific query patterns. We've already done this with our schema, but here's a reminder of the patterns used:
-
-* Albums are colocated by ArtistId (optimizes Artist-Album joins)
-* Tracks are colocated by AlbumId (optimizes Album-Track joins)
-* Invoices are colocated by CustomerId (optimizes Customer-Invoice joins)
-* InvoiceLines are colocated by InvoiceId (optimizes Invoice-InvoiceLine joins)
-
-This colocation ensures that related data is stored on the same cluster nodes, minimizing network transfer during joins.
-
-> [!TIP]
-> **Checkpoint**: Try running EXPLAIN PLAN on several of your own queries, especially those involving joins between colocated tables. Look for the presence of `ColocatedHashAggregate` and low network costs to identify queries that benefit from colocation.
 
 ## Cleaning Up
 
-When you're finished with the Ignite SQL CLI, you can exit by typing:
-
-```sql
-exit;
-```
-
-This will return you to the Ignite CLI. To exit the Ignite CLI, type:
+Exit sqlline:
 
 ```
-exit
+!quit
 ```
 
-Leave your cluster running. We'll use it in the next hands-on session.
+Leave your cluster running — we'll use it in the next hands-on session.
 
-## Best Practices for Ignite SQL
-
-To get the most out of Ignite SQL, follow these best practices:
+## Best Practices
 
 ### Schema Design
-
-* Use appropriate colocation for tables that are frequently joined
+* Use affinity colocation for tables that are frequently joined
 * Choose primary keys that distribute data evenly across the cluster
-* Design with query patterns in mind, especially for large-scale deployments
+* Use replicated caches for small lookup tables accessed in many joins
 
 ### Query Optimization
-
 * Create indexes for columns used in WHERE, JOIN, and ORDER BY clauses
-* Use the EXPLAIN statement to analyze and optimize your queries
-* Avoid cartesian products and inefficient join conditions
-
-### Transaction Management
-
-* Keep transactions as short as possible
-* Don't hold transactions open during user think time
-* Group related operations into a single transaction for atomicity
-
-### Resource Management
-
-* Monitor query performance in production
-* Consider partitioning strategies for very large tables
-* Use appropriate data types to minimize storage requirements
+* Use EXPLAIN to analyze query plans
+* Leverage affinity colocation to keep joined data on the same node
 
 ## Summary
 
 In this guide, you've learned:
 
-1. How to set up and initialize an Apache Ignite 3 cluster using Docker
-2. How to create a distributed database schema with appropriate zones and colocation
-3. How to load and query data using SQL
-4. How to optimize queries with indexes and understand execution plans
-5. How to leverage advanced SQL features like CTEs and alternatives to window functions
-6. How to perform data manipulation operations in a distributed environment
-7. How to design analytical queries for business intelligence dashboards
-
-## Conclusion
-
-Apache Ignite's SQL capabilities make it a powerful platform for building distributed applications that require high throughput, low latency, and strong consistency. By following the patterns and practices in this guide, you can leverage Ignite SQL to build scalable, resilient systems.
-
-Remember that Ignite is not just a SQL database—it's a comprehensive distributed computing platform with capabilities beyond what we've covered here. As you become more comfortable with Ignite SQL, you may want to explore other features such as compute grid, machine learning, and stream processing.
-
-Happy querying!
+1. How to create a distributed database schema with partitioned and replicated caches
+2. How to load and query data using SQL via sqlline
+3. How to perform data manipulation in a distributed environment
+4. How affinity colocation groups related data on the same node for efficient joins
+5. How to build analytical queries for business intelligence

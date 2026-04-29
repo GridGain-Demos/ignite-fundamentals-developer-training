@@ -1,132 +1,112 @@
 package org.gridgain.training.fundamentals;
 
-import org.apache.ignite.catalog.annotations.*;
+import org.apache.ignite.Ignition;
+import org.apache.ignite.binary.BinaryObject;
+import org.apache.ignite.cache.query.SqlFieldsQuery;
+import org.apache.ignite.client.ClientCache;
 import org.apache.ignite.client.IgniteClient;
-import org.apache.ignite.table.KeyValueView;
-import org.apache.ignite.table.RecordView;
-import org.apache.ignite.table.Tuple;
-import org.apache.ignite.tx.Transaction;
+import org.apache.ignite.configuration.ClientConfiguration;
 
-import java.util.Objects;
+import java.util.List;
 
 /**
- * This example demonstrates connecting to an GridGain 9 cluster
- * and working with data using different table view patterns.
+ * Demonstrates connecting to a GridGain 8 cluster and working with data
+ * using the thin-client API: SQL queries, SQL DML, and key-value access
+ * with BinaryObject.
  */
 public class Main {
-    public static void main(String[] args) throws Exception {
-        // Create an array of connection addresses for fault tolerance
-        String[] addresses = {
-                "localhost:10800",
-                "localhost:10801",
-                "localhost:10802"
-        };
+    public static void main(String[] args) {
+        String address = System.getenv().getOrDefault("IGNITE_ADDRESS", "localhost:10800");
 
-        // Connect to the Ignite cluster using the client builder pattern
-        try (IgniteClient client = IgniteClient.builder()
-                .addresses(addresses)
-                .build()) {
+        ClientConfiguration cfg = new ClientConfiguration().setAddresses(address);
 
-            System.out.println("Connected to the cluster: " + client.connections());
+        try (IgniteClient client = Ignition.startClient(cfg)) {
+            System.out.println("Connected to the cluster");
 
-            // Demonstrate querying existing data using SQL API
             queryExistingTable(client);
-
-            // Demonstrate different ways to interact with tables
-            populateTableWithDifferentViews(client);
+            insertWithSqlDml(client);
+            keyValueWithBinaryObject(client);
+            verifyResults(client);
         }
     }
 
     /**
-     * Queries the pre-created Album table using SQL
+     * Block 1 — SQL SELECT: query pre-loaded Chinook data.
      */
     private static void queryExistingTable(IgniteClient client) {
-        System.out.println("\n--- Querying Album table ---");
-        try (var rs = client.sql().execute((Transaction) null, "SELECT * FROM Album LIMIT 10")) {
-                rs.forEachRemaining(row -> System.out.println("Album: " + row.stringValue("title")));
+        System.out.println("\n--- Querying Album table using SQL ---");
+
+        ClientCache<?, ?> cache = client.cache("Artist");
+
+        List<List<?>> rows = cache.query(
+                new SqlFieldsQuery("SELECT AlbumId, Title, ArtistId FROM Album LIMIT 10")
+        ).getAll();
+
+        for (List<?> row : rows) {
+            System.out.println("Album: " + row.get(1));
         }
     }
 
     /**
-     * Demonstrates different ways to interact with tables
+     * Block 2 — SQL DML: insert data using parameterized SQL statements.
      */
-    private static void populateTableWithDifferentViews(IgniteClient client) throws Exception {
-        System.out.println("\n--- Populating Artist and Album tables using different views ---");
+    private static void insertWithSqlDml(IgniteClient client) {
+        System.out.println("\n--- Inserting data using SQL DML ---");
 
-        // 1. Using RecordView with Tuples
-        try (RecordView<Tuple> recordView = Objects.requireNonNull(client.tables().table("Artist")).recordView()) {
-            recordView.upsert(null, Tuple.create().set("artistId", 276).set("name", "New Discovery Band"));
-            System.out.println("Added record using RecordView with Tuple");
-        }
+        ClientCache<?, ?> cache = client.cache("Artist");
 
-        // 2. Using RecordView with POJOs
-        try (RecordView<Album> pojoView = Objects.requireNonNull(client.tables().table("Album")).recordView(Album.class)) {
-            pojoView.upsert(null, new Album(348, "First Light", 276, 2023));
-            System.out.println("Added record using RecordView with POJO");
-        }
+        cache.query(new SqlFieldsQuery(
+                "INSERT INTO Artist (ArtistId, Name) VALUES (?, ?)")
+                .setArgs(276, "New Discovery Band")
+        ).getAll();
+        System.out.println("Added artist using SQL INSERT");
 
-        // 3. Using KeyValueView with Tuples
-        try (KeyValueView<Tuple, Tuple> keyValueView = Objects.requireNonNull(client.tables().table("Artist")).keyValueView()) {
-            keyValueView.put(null, Tuple.create().set("artistId", 277), Tuple.create().set("name", "New Order"));
-            System.out.println("Added record using KeyValueView with Tuples");
-        }
+        cache.query(new SqlFieldsQuery(
+                "INSERT INTO Album (AlbumId, Title, ArtistId, ReleaseYear) VALUES (?, ?, ?, ?)")
+                .setArgs(348, "First Light", 276, 2023)
+        ).getAll();
+        System.out.println("Added album using SQL INSERT");
+    }
 
-        // 4. Using KeyValueView with Native Types
-        try (KeyValueView<AlbumKey, AlbumValue> keyValuePojoView = Objects.requireNonNull(client.tables().table("Album")).keyValueView(AlbumKey.class, AlbumValue.class)) {
-            keyValuePojoView.put(null, new AlbumKey(349, 277), new AlbumValue("Technique", 1989));
-            System.out.println("Added record using KeyValueView with Native Types");
+    /**
+     * Block 3 — Key-Value API: put and get data using BinaryObject.
+     * BinaryObject provides schema-less access without requiring POJO
+     * classes on the server.
+     */
+    private static void keyValueWithBinaryObject(IgniteClient client) {
+        System.out.println("\n--- Using Key-Value API with BinaryObject ---");
+
+        ClientCache<Integer, BinaryObject> cache =
+                client.<Integer, BinaryObject>cache("Artist").withKeepBinary();
+
+        BinaryObject val = client.binary().builder("Artist")
+                .setField("NAME", "New Order")
+                .build();
+        cache.put(277, val);
+        System.out.println("Added artist 277 using Key-Value put");
+
+        BinaryObject result = cache.get(277);
+        if (result != null) {
+            System.out.println("Retrieved artist 277: " + result.field("NAME"));
         }
     }
 
     /**
-     * POJO class representing an Album
+     * Block 4 — Verify: read back all new data with a SQL JOIN.
      */
-    @Table(zone = @Zone(value = "Chinook", replicas = 2, storageProfiles = "default"),
-            colocateBy = {@ColumnRef("artistId")})
-    @SuppressWarnings({"unused","FieldCanBeLocal"})
-    public static class Album {
-        // Default constructor required for serialization
-        public Album() { }
+    private static void verifyResults(IgniteClient client) {
+        System.out.println("\n--- Verifying with SQL JOIN ---");
 
-        public Album(Integer albumId, String title, Integer artistId, Integer releaseYear) {
-            this.albumId = albumId;
-            this.title = title;
-            this.artistId = artistId;
-            this.releaseYear = releaseYear;
-        }
+        ClientCache<?, ?> cache = client.cache("Artist");
 
-        @Id
-        private Integer albumId;
-        @Column(length = 25)
-        private String title;
-        @Id
-        private Integer artistId;
-        private Integer releaseYear;
-    }
+        List<List<?>> results = cache.query(new SqlFieldsQuery(
+                "SELECT a.Title, ar.Name FROM Album a " +
+                        "JOIN Artist ar ON a.ArtistId = ar.ArtistId " +
+                        "WHERE ar.ArtistId IN (276, 277)")
+        ).getAll();
 
-    @SuppressWarnings({"unused", "FieldCanBeLocal"})
-    public static class AlbumKey {
-        private Integer albumId;
-        private Integer artistId;
-
-        public AlbumKey() {}
-
-        public AlbumKey(Integer albumId, Integer artistId) {
-            this.albumId = albumId;
-            this.artistId = artistId;
-        }
-    }
-
-    @SuppressWarnings({"unused", "FieldCanBeLocal"})
-    public static class AlbumValue {
-        private String title;
-        private Integer releaseYear;
-
-        public AlbumValue() {}
-
-        public AlbumValue(String title, Integer releaseYear) {
-            this.title = title;
-            this.releaseYear = releaseYear;
+        for (List<?> row : results) {
+            System.out.println("Album: '" + row.get(0) + "' by '" + row.get(1) + "'");
         }
     }
 }

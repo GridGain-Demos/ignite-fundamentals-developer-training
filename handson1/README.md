@@ -1,24 +1,20 @@
-# Hands-on #1: Starting a cluster
+# Hands-on #1: Starting a Cluster
 
-This guide walks you through the process of setting up and running an GridGain cluster using Docker containers. Follow these steps to get a three-node cluster up and running quickly.
+This guide walks you through setting up a three-node GridGain 8 Community Edition cluster using Docker Compose.
 
 ## Prerequisites
 
 - Docker and Docker Compose installed on your system
 - Basic familiarity with command-line operations
-- GridGain license file
 
-## Setting Up an Apache Ignite 3 Cluster
-
-Before we can start using SQL, we need to set up a multi-node Ignite cluster. We'll use Docker Compose to create a three-node cluster.
+## Cluster Architecture
 
 ```mermaid
 graph TD
     A[Your Computer] --> B[Docker Network]
-    B --> C[Node 1]
+    B --> C[Node 1 — port 10800]
     B --> D[Node 2]
     B --> E[Node 3]
-    F[CLI Container] --> B
 ```
 
 > [!NOTE]
@@ -26,72 +22,55 @@ graph TD
 
 ## Step 1: Understand the Docker Compose Configuration
 
-1. View the file named [`docker-compose.yaml`](docker-compose.yaml) in the current directory:
+Open [`../docker/docker-compose.yaml`](../docker/docker-compose.yaml) and review the configuration:
+
+- **Image:** `gridgain/community:8.9.32-openjdk17` — GridGain 8 Community Edition with JDK 17.
+- **3 server nodes** connected on a private Docker network. Node discovery uses a static IP list configured in `training-node-config.xml`.
+- **Port 10800** (thin-client) is published on node1 so your local applications can connect.
+- **Optional sidecar containers** (`app` for Java / Maven, `app-dotnet` for .NET 8) are available for students who don't have a local SDK. They start only when explicitly requested.
 
 ## Step 2: Start the GridGain Cluster
 
-1. Open a terminal in the directory containing your `docker-compose.yml` file
-2. Run the following command to start the cluster:
+1. Open a terminal at the **repository root** (the directory that contains `docker/`, `handson1/`, `handson2/`, and `handson3/`).
+
+2. Start the cluster:
 
 ```bash
-docker compose up -d
+docker compose -f docker/docker-compose.yaml up -d
 ```
 
-3. Verify that all containers are running:
+3. Verify that all three nodes are running:
 
 ```bash
-docker compose ps
+docker compose -f docker/docker-compose.yaml ps
 ```
 
-You should see all three nodes with "running" status.
+You should see three containers with status "running" (or "Up").
 
-## Step 3: Initialize the Cluster
+## Step 3: Verify the Cluster
 
-1. Ensure your license file is located in the same directory as your docker-compose.yaml file. A GridGain Community Edition or GridGain evaluation license will both work well for this exercise
-
-2. Start the Ignite CLI in Docker:
+Check the logs from node1 to confirm the cluster formed:
 
 ```bash
-docker run --rm -it --network=gridgain9_default -v ./gridgain-license.json:/opt/gridgain/downloads/gridgain-license.json gridgain/gridgain9:9.1.8 cli
+docker compose -f docker/docker-compose.yaml logs node1 | grep "Topology snapshot"
 ```
 
-> [!NOTE]
-> If you have an evaluation license, a later version of Gridgain will also work. Switching the compose file to use Apache Ignite should also work but may not have been tested. We won't cover this during the workshop.
-
-3. Inside the CLI, connect to one of the nodes:
+You should see a line like:
 
 ```
-connect http://node1:10300
+Topology snapshot [ver=3, locNode=..., servers=3, clients=0, ...]
 ```
 
-> [!NOTE]
-> The CLI container runs separately from your cluster nodes but connects to them over the Docker network. This separation follows best practices for management interfaces.
-
-4. Initialize the cluster with a name and metastorage group:
-
-```
-cluster init --name=gridgain9 --metastorage-group=node1,node2,node3 --license=/opt/gridgain/downloads/gridgain-license.json
-```
-
-5. You should see the message "Cluster was initialized successfully"
-
-## Step 4: Verify Your Cluster
-
-1. Type `cluster status` in the CLI
-
-2. You should see a count of the nodes and the status flagged as "active"
-
-3. Investigate the other features of the CLI and the cluster. A good starting point is the `help` command
-
-4. Exit the CLI by typing `exit` or pressing Ctrl+D
+The `servers=3` confirms all three nodes have joined the cluster.
 
 ## Understanding Port Configuration
 
-The Docker Compose file exposes two types of ports for each node:
+The Docker Compose file publishes one port:
 
-- **10300-10302**: REST API ports for administrative operations
-- **10800-10802**: Client connection ports for your applications
+- **10800** (on node1): Thin-client port — your Java or .NET application connects here.
 
-## Next steps
+Nodes communicate with each other over the internal Docker network using ports 47100 (communication) and 47500 (discovery). These are not published to the host.
 
-The lessons will resume shortly! Please don't shutdown your cluster yet.
+## Next Steps
+
+The lessons will resume shortly! Please don't shut down your cluster yet.

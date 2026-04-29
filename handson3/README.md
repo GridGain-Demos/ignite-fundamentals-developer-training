@@ -1,125 +1,164 @@
-# Hands-on #3: Using Java API
+# Hands-on #3: Using the Client API
 
-This guide walks you through creating a Java application that connects to an Apache Ignite 3 cluster, demonstrating key patterns for working with data using Ignite's Java API.
+This guide walks you through creating an application that connects to a GridGain 8 cluster using the thin-client API. The demo is available in both **Java** and **.NET** — pick the language for your session.
 
 ## Prerequisites
 
-* Completed hands-on #1 and #2 and have a running, initialized GridGain cluster with a schema and sample data loaded
-* JDK 11 or later
-* Maven
-* Docker and Docker Compose
-* (Optionally an IDE, such as IntelliJ)
+* Completed hands-on #1 and #2: running cluster with Chinook schema and data loaded
+* **Java path:** JDK 17 and Maven — or use the Docker sidecar (no local install needed)
+* **.NET path:** .NET 8 SDK — or use the Docker sidecar (no local install needed)
+* (Optionally an IDE such as IntelliJ or Visual Studio)
 
-## Setting Up Your Java Project
+## What the Demo Covers
 
-## Building Your Java Application
+The application demonstrates four patterns for working with a GridGain 8 cluster via the thin client:
 
-Now, let's create a Java application that connects to our Ignite cluster and performs various data operations.
+1. **Connecting** to the cluster
+2. **SQL SELECT** — querying existing data with `SqlFieldsQuery`
+3. **SQL DML** — inserting data with parameterized SQL statements
+4. **Key-Value API** — putting and getting data using `BinaryObject` (schema-less access without requiring POJO classes on the server)
+5. **Verification** — reading back data with a SQL JOIN
 
-### Main Application Class
+## Java
 
-Review the `Main.java` file, paying special attention to the following:
+### Review the Code
 
-* Connecting to the cluster
-* Running SQL
-* Using the key-value API
-* Using the record API
+Open `java/src/main/java/org/gridgain/training/fundamentals/Main.java` and examine the four blocks:
 
-## Running the Application
+* **`queryExistingTable`** — runs a `SqlFieldsQuery` SELECT against the Album table
+* **`insertWithSqlDml`** — inserts new Artist and Album rows using parameterized SQL
+* **`keyValueWithBinaryObject`** — uses the cache key-value API with `BinaryObject` to put and get an Artist
+* **`verifyResults`** — runs a SQL JOIN to confirm the data is consistent
 
-To run your application:
+### Build and Run
 
-1. Make sure your Ignite cluster is up and running
-2. Compile and run your Java application:
+#### Option A: Local Maven
 
-   ```bash
-   mvn compile exec:java -Dexec.mainClass="org.gridgain.training.fundamentals.Main"
-   ```
+From the repository root:
 
-## Expected Output
+```bash
+mvn -f handson3/java/pom.xml compile exec:exec
+```
 
-You should see output similar to this:
+#### Option B: Docker Maven Sidecar
+
+```bash
+docker compose -f docker/docker-compose.yaml run --rm app mvn -f handson3/java/pom.xml compile exec:exec
+```
+
+The sidecar connects to the cluster over the Docker network (address `node1:10800` is set via the `IGNITE_ADDRESS` environment variable).
+
+### Expected Output
 
 ```text
-Connected to the cluster: [ClientClusterNode [id=f82f73ba-8e3d-4342-91f3-3ee9cd01632b, name=node1, address=localhost:10800, nodeMetadata=null]]
+Connected to the cluster
 
---- Querying Album table ---
-Album: King For A Day Fool For A Lifetime
-Album: Na Pista
-Album: The Best Of R.E.M.: The IRS Years
-Album: Cássia Eller - Coleção Sem Limite [Disc 2]
-Album: Cássia Eller - Sem Limite [Disc 1]
-Album: Wagner: Favourite Overtures
-Album: Greatest Hits II
-Album: Album Of The Year
-Album: Alcohol Fueled Brewtality Live! [Disc 1]
-Album: New Adventures In Hi-Fi
+--- Querying Album table using SQL ---
+Album: For Those About To Rock We Salute You
+Album: Balls to the Wall
+Album: Restless and Wild
+...
 
---- Populating Artist and Album tables using different views ---
-Added record using RecordView with Tuple
-Added record using RecordView with POJO
-Added record using KeyValueView with Tuples
-Added record using KeyValueView with Native Types
+--- Inserting data using SQL DML ---
+Added artist using SQL INSERT
+Added album using SQL INSERT
 
---- Querying Album table ---
-Album: Technique
+--- Using Key-Value API with BinaryObject ---
+Added artist 277 using Key-Value put
+Retrieved artist 277: New Order
+
+--- Verifying with SQL JOIN ---
+Album: 'First Light' by 'New Discovery Band'
 ```
 
-## Understanding Table Views in GridGain 9
+## .NET
 
-Ignite 3 and GridGain 9 provides multiple view patterns for interacting with tables:
+### Review the Code
 
-### RecordView Pattern
+Open `dotnet/Program.cs` and examine the same four blocks, translated to C#:
 
-RecordView treats tables as a collection of records, perfect for operations that work with entire rows:
+* **`QueryExistingTable`** — `SqlFieldsQuery` SELECT
+* **`InsertWithSqlDml`** — parameterized SQL INSERT
+* **`KeyValueWithBinaryObject`** — cache `Put`/`Get` with `IBinaryObject`
+* **`VerifyResults`** — SQL JOIN verification
 
-```java
-// Get RecordView for Tuple objects (schema-less)
-RecordView<Tuple> recordView = table.recordView();
-recordView.upsert(null, Tuple.create().set("id", 2).set("name", "Jane"));
+### Build and Run
 
-// Get RecordView for mapped POJO objects (type-safe)
-RecordView<Artist> pojoView = table.recordView(Artist.class);
-pojoView.upsert(null, new Artist(3, "Beatles"));
+#### Option A: Local .NET SDK
+
+From the repository root:
+
+```bash
+dotnet run --project handson3/dotnet/dotnet.csproj
 ```
 
-### KeyValueView Pattern
+#### Option B: Docker .NET Sidecar
 
-KeyValueView treats tables as a key-value store, ideal for simple lookups:
+```bash
+docker compose -f docker/docker-compose.yaml run --rm app-dotnet dotnet run --project handson3/dotnet/dotnet.csproj
+```
 
+### Expected Output
+
+Same as the Java output above — both versions produce identical results.
+
+## Understanding GG8 Thin-Client Patterns
+
+### SQL via SqlFieldsQuery
+
+The primary way to work with data in GG8. You obtain a cache handle and call `.query()` (Java) or `.Query()` (.NET) with a `SqlFieldsQuery`.
+
+**Java:**
 ```java
-// Get KeyValueView for Tuple objects
-KeyValueView<Tuple, Tuple> keyValueView = table.keyValueView();
-keyValueView.put(null, Tuple.create().set("id", 4), Tuple.create().set("name", "Jill"));
+ClientCache<?, ?> cache = client.cache("Artist");
+List<List<?>> rows = cache.query(new SqlFieldsQuery("SELECT * FROM Album WHERE ArtistId = ?").setArgs(22)).getAll();
+```
 
-// Get KeyValueView for native Java types
-KeyValueView<Integer, String> keyValuePojoView = table.keyValueView(Integer.class, String.class);
-keyValuePojoView.put(null, 5, "Joe");
+**.NET:**
+```csharp
+var cache = client.GetCache<object, object>("Artist");
+var rows = cache.Query(new SqlFieldsQuery("SELECT * FROM Album WHERE ArtistId = ?", 22)).GetAll();
+```
+
+### Key-Value API with BinaryObject
+
+For direct cache access without SQL. `BinaryObject` lets you read and write fields without needing server-side POJO/POCO classes.
+
+**Java:**
+```java
+ClientCache<Integer, BinaryObject> cache = client.<Integer, BinaryObject>cache("Artist").withKeepBinary();
+BinaryObject val = client.binary().builder("Artist").setField("NAME", "My Band").build();
+cache.put(999, val);
+```
+
+**.NET:**
+```csharp
+var cache = client.GetCache<int, IBinaryObject>("Artist").WithKeepBinary<int, IBinaryObject>();
+var val = client.GetBinary().GetBuilder("Artist").SetField("NAME", "My Band").Build();
+cache.Put(999, val);
 ```
 
 ## Cleaning Up
 
-To stop your Ignite cluster when you're done:
+To stop the cluster when you're done with all exercises:
 
 ```bash
-docker compose down
+docker compose -f docker/docker-compose.yaml down
 ```
 
 ## Troubleshooting
 
-If you encounter connection issues:
-
-* Verify your Docker containers are running with `docker compose ps`
-* Check if the exposed ports match those in your client configuration
-* Ensure that the `localhost` interface can access the Docker container network
+* **Connection refused:** Verify containers are running with `docker compose -f docker/docker-compose.yaml ps`
+* **Cache not found:** Make sure you loaded the schema and data in hands-on #2
+* **Wrong address:** Local runs connect to `localhost:10800`; Docker sidecar runs use `node1:10800` (set automatically via `IGNITE_ADDRESS`)
 
 ## Next Steps
 
-Now that you've explored the basics of connecting to Ignite and interacting with data:
+Now that you've explored the basics of connecting to GridGain and interacting with data:
 
-* Try implementing transactions
-* Experiment with more complex schemas and data types
-* Explore data partitioning strategies
-* Investigate Ignite's distributed computing capabilities
+* Try more complex SQL queries and joins
+* Explore affinity colocation by querying colocated tables
+* Investigate GridGain's distributed computing capabilities (compute grid, services)
+* Look into persistence for durable storage
 
-For more information, consult the [GridGain 9](https://www.gridgain.com/docs/index.html) or [Apache Ignite 3 documentation](https://ignite.apache.org/docs/3.0.0/index).
+For more information, consult the [GridGain documentation](https://www.gridgain.com/docs/latest).
