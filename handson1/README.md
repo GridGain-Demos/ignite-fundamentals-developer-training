@@ -52,16 +52,10 @@ You should see three containers with status "running" (or "Up").
 Check the logs from node1 to confirm the cluster formed:
 
 ```bash
-docker compose -f docker/docker-compose.yaml logs node1 | grep "Topology snapshot"
+docker compose -f docker/docker-compose.yaml logs node1
 ```
 
-You should see a line like:
-
-```
-Topology snapshot [ver=3, locNode=..., servers=3, clients=0, ...]
-```
-
-The `servers=3` confirms all three nodes have joined the cluster.
+Scroll to the end and look for a line containing `Topology snapshot [ver=3, ... servers=3, clients=0]`. The `servers=3` confirms all three nodes have joined the cluster.
 
 ## Understanding Port Configuration
 

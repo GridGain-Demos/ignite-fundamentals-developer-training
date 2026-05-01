@@ -64,7 +64,7 @@ handson1/
 handson2/
   README.md               ← Hands-on #2: SQL (Chinook schema, queries, colocation)
   sql/
-    schema.sql             ← Chinook DDL with cache templates and affinity keys
+    schema.sql             ← Chinook DDL with cache modes and affinity keys
     data.sql               ← Chinook sample data (275 artists, 3503 tracks, …)
 handson3/
   README.md               ← Hands-on #3: thin-client API (Java and .NET)
@@ -96,10 +96,10 @@ docker compose -f docker/docker-compose.yaml up -d
 Verify all three nodes joined:
 
 ```bash
-docker compose -f docker/docker-compose.yaml logs node1 | grep "Topology snapshot" | tail -1
+docker compose -f docker/docker-compose.yaml logs node1
 ```
 
-Expect `servers=3` in the output.
+Scroll to the end and look for a line containing `Topology snapshot [ver=3, ... servers=3, clients=0]`. The `servers=3` confirms all three nodes joined.
 
 ---
 
@@ -110,7 +110,7 @@ Full instructions: [`handson2/README.md`](handson2/README.md)
 Quick start — copy the SQL files into the container:
 
 ```bash
-docker cp handson2/sql/. "$(docker compose -f docker/docker-compose.yaml ps -q node1)":/opt/gridgain/work/sql/
+docker compose -f docker/docker-compose.yaml cp handson2/sql/. node1:/opt/gridgain/work/sql/
 ```
 
 Load the schema:
@@ -128,7 +128,7 @@ docker compose -f docker/docker-compose.yaml exec node1 /opt/gridgain/bin/sqllin
 Verify:
 
 ```bash
-docker compose -f docker/docker-compose.yaml exec node1 /opt/gridgain/bin/sqlline.sh -u jdbc:ignite:thin://node1:10800 -e "SELECT 'Artist', COUNT(*) FROM Artist UNION ALL SELECT 'Track', COUNT(*) FROM Track;"
+printf 'SELECT COUNT(*) FROM Artist;\nSELECT COUNT(*) FROM Track;\n!quit\n' | docker compose -f docker/docker-compose.yaml exec -T node1 /opt/gridgain/bin/sqlline.sh -u jdbc:ignite:thin://node1:10800 --silent=true
 ```
 
 Expect **275** artists and **3503** tracks.
@@ -203,5 +203,5 @@ The `docker/data/` directory is kept on the host (holds logs and marshaller meta
 | Java: `Connection refused` | Cluster not running or port not published | `docker compose -f docker/docker-compose.yaml ps` — check node1 is up with port 10800 |
 | Java: cache not found (`CacheNotFoundException`) | Schema not loaded | Run the schema.sql step from hands-on #2 |
 | Sidecar: `Connection refused` to thin client | `IGNITE_ADDRESS` env var not set or using `localhost` | Sidecar connects via `node1:10800` — check `environment:` in `docker/docker-compose.yaml` |
-| .NET: NuGet restore fails | Network issue or package version mismatch | Verify `Apache.Ignite` package resolves; see handson3 README |
+| .NET: NuGet restore fails | Network issue or package version mismatch | Verify `GridGain.Ignite` package resolves; see handson3 README |
 

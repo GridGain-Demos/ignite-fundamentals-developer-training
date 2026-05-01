@@ -43,7 +43,7 @@ graph TD
 2. Copy the SQL files into the container:
 
 ```bash
-docker cp handson2/sql/. "$(docker compose -f docker/docker-compose.yaml ps -q node1)":/opt/gridgain/work/sql/
+docker compose -f docker/docker-compose.yaml cp handson2/sql/. node1:/opt/gridgain/work/sql/
 ```
 
 3. Load the schema:
