@@ -1,6 +1,6 @@
 # Hands-on #1: Starting a Cluster
 
-This guide walks you through setting up a three-node GridGain 8 Community Edition cluster using Docker Compose.
+This guide walks you through setting up a three-node GridGain 8 Enterprise Edition cluster using Docker Compose.
 
 ## Prerequisites
 
@@ -24,7 +24,7 @@ graph TD
 
 Open [`../docker/docker-compose.yaml`](../docker/docker-compose.yaml) and review the configuration:
 
-- **Image:** `gridgain/community:8.9.32-openjdk17` — GridGain 8 Community Edition with JDK 17.
+- **Image:** `gridgain/enterprise:8.9.32-openjdk17-slim` — GridGain 8 Enterprise Edition with JDK 17.
 - **3 server nodes** connected on a private Docker network. Node discovery uses a static IP list configured in `training-node-config.xml`.
 - **Port 10800** (thin-client) is published on node1 so your local applications can connect.
 - **Optional sidecar containers** (`app` for Java / Maven, `app-dotnet` for .NET 8) are available for students who don't have a local SDK. They start only when explicitly requested.
@@ -33,13 +33,17 @@ Open [`../docker/docker-compose.yaml`](../docker/docker-compose.yaml) and review
 
 1. Open a terminal at the **repository root** (the directory that contains `docker/`, `handson1/`, `handson2/`, and `handson3/`).
 
-2. Start the cluster:
+2. You should have received a license key a day or two before this session. Check your spam folder if you have not seen it yet. If you registered at the last minute, you can download a key from [our website](https://www.gridgain.com/tryfree)
+
+3. Copy your license key to the `docker` folder. Ensure it's called `gridgain-license.xml`
+
+4. Start the cluster:
 
 ```bash
 docker compose -f docker/docker-compose.yaml up -d
 ```
 
-3. Verify that all three nodes are running:
+5. Verify that all three nodes are running:
 
 ```bash
 docker compose -f docker/docker-compose.yaml ps

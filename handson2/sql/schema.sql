@@ -1,4 +1,4 @@
--- Chinook database schema for GridGain 8 Community Edition.
+-- Chinook database schema for GridGain 8 Enterprise Edition.
 --
 -- Each table specifies a cache mode in its WITH clause:
 --   - Partitioned caches: WITH "template=partitioned,backups=1"

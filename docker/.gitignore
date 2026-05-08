@@ -3,3 +3,6 @@ data/
 
 # Log directories
 logs/
+
+# License file
+gridgain-license.xml
