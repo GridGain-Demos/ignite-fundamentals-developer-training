@@ -250,6 +250,10 @@ WHERE ar.ArtistId = 22;
 
 The plan shows which indexes are used for the join. Look for `AFFINITY_KEY` — this indicates the join uses the affinity key index, meaning the data is colocated and the join executes locally on the node that owns Artist 22's partition.
 
+> [!TIP]
+> Sometimes the full execution plan is truncated. You can tell sqlline how wide your terminal is with the "set" command: `!set maxwidth 500`
+
+
 > [!NOTE]
 > EXPLAIN shows the query plan — indexes used and join order. The distributed execution layer (how work is split across nodes) is transparent. Colocation benefits don't appear explicitly in the plan; they show up as faster execution because no data needs to move between nodes.
 
