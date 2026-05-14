@@ -1,5 +1,7 @@
 # Apache Ignite Fundamentals Developer Training
 
+GridGain 8 is a commercial distribution of Apache Ignite; this training uses GridGain 8 Enterprise Edition running in Docker.
+
 New to Apache Ignite? This 90-minute hands-on training webinar is the fastest way for Java and .NET developers to get started with GridGain 8 and distributed in-memory computing. In this session, you'll learn how to spin up a cluster, connect a client application, and work with distributed data using SQL and the key-value API.
 
 We'll cover the core building blocks of GridGain — caches, partitioning, replication, and affinity colocation — and show how they translate into code. By the end of the session, you'll understand how GridGain distributes data, why it delivers high performance at scale, and how to start building your own applications with confidence.
@@ -38,6 +40,7 @@ Check the [complete schedule](https://www.gridgain.com/products/services/trainin
 
 - Git
 - Docker Desktop
+- A bash-compatible terminal (Git Bash on Windows, or any macOS / Linux terminal)
 - Your favorite IDE (IntelliJ, Visual Studio, VS Code, or a plain editor)
 
 JDK 17 / Maven and .NET 8 SDK are optional — the `app` and `app-dotnet` sidecar services provide them. Install locally only if you prefer the standalone workflow.
@@ -89,6 +92,8 @@ Full instructions: [`handson1/README.md`](handson1/README.md)
 
 Quick start from the repository root:
 
+You should have received a license key before this session. Copy it to the `docker` folder as `gridgain-license.xml` (see [Hands-on #1](handson1/README.md) for details).
+
 ```bash
 docker compose -f docker/docker-compose.yaml up -d
 ```
@@ -96,10 +101,16 @@ docker compose -f docker/docker-compose.yaml up -d
 Verify all three nodes joined:
 
 ```bash
-docker compose -f docker/docker-compose.yaml logs node1
+docker compose -f docker/docker-compose.yaml logs node1 | grep "Topology snapshot" | tail -1
 ```
 
-Scroll to the end and look for a line containing `Topology snapshot [ver=3, ... servers=3, clients=0]`. The `servers=3` confirms all three nodes joined.
+**PowerShell:**
+
+```powershell
+docker compose -f docker/docker-compose.yaml logs node1 | Select-String "Topology snapshot" | Select-Object -Last 1
+```
+
+Expect `servers=3` in the output.
 
 ---
 
@@ -131,6 +142,14 @@ Verify:
 printf 'SELECT COUNT(*) FROM Artist;\nSELECT COUNT(*) FROM Track;\n!quit\n' | docker compose -f docker/docker-compose.yaml exec -T node1 /opt/gridgain/bin/sqlline.sh -u jdbc:ignite:thin://node1:10800 --silent=true
 ```
 
+**PowerShell:**
+
+```powershell
+"SELECT COUNT(*) FROM Artist;", "SELECT COUNT(*) FROM Track;", "!quit" | Out-File -Encoding ascii verify.sql
+cmd /c "docker compose -f docker/docker-compose.yaml exec -T node1 /opt/gridgain/bin/sqlline.sh -u jdbc:ignite:thin://node1:10800 --silent=true < verify.sql"
+Remove-Item verify.sql
+```
+
 Expect **275** artists and **3503** tracks.
 
 ---
@@ -141,10 +160,10 @@ GridGain distributes data across nodes by partitioning. By default, rows from di
 
 **Affinity colocation** solves this: when two tables share a colocation key, rows with the same key value are guaranteed to land on the same node. The Chinook schema uses this to keep related data together:
 
-* Albums are colocated by `ArtistId` — all albums by Artist 22 live on the same node as Artist 22
-* Tracks are colocated by `AlbumId` — all tracks on Album 133 live with that album
-* Invoices are colocated by `CustomerId` — a customer's invoices live with the customer
-* InvoiceLines are colocated by `InvoiceId` — line items live with their invoice
+* Albums are colocated with Artists by `ArtistId` — all albums by Artist 22 live on the same node as Artist 22
+* Tracks are grouped by `AlbumId` — all tracks on Album 133 land on the same node as each other (but not necessarily with the Album row, which partitions by `ArtistId`)
+* Invoices are colocated with Customers by `CustomerId` — a customer's invoices live with the customer
+* InvoiceLines are grouped by `InvoiceId` — all line items for Invoice 5 land together (but not necessarily with the Invoice row, which partitions by `CustomerId`)
 
 The result is that joins between colocated tables execute locally on each node — no data shuffling across the network. Full walkthrough in [`handson2/README.md`](handson2/README.md#colocation-strategy-summary).
 
@@ -190,7 +209,9 @@ docker compose -f docker/docker-compose.yaml run --rm app-dotnet dotnet run --pr
 docker compose -f docker/docker-compose.yaml down
 ```
 
-The `docker/data/` directory is kept on the host (holds logs and marshaller metadata).
+The cluster runs in-memory — all data is lost when the nodes stop. If you restart the cluster, reload the schema and data by re-running the hands-on #2 SQL steps.
+
+The `docker/data/` directory is kept on the host (holds logs and marshaller metadata). The `db/marshaller/` subdirectory is always created; `db/wal/` only appears when persistence is enabled.
 
 ---
 
@@ -198,10 +219,12 @@ The `docker/data/` directory is kept on the host (holds logs and marshaller meta
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `docker compose up -d` hangs on the second attempt | Port 10800 still held by a cluster running in another directory | `docker compose -f docker/docker-compose.yaml down` in that directory first |
+| `docker compose -f docker/docker-compose.yaml up -d` hangs on the second attempt | Port 10800 still held by a cluster running in another directory | `docker compose -f docker/docker-compose.yaml down` in that directory first |
 | Nodes start but produce no logs; `docker/data/` empty (Linux only) | Container runs as UID 10000; host `docker/data/` owned by your user | `chown -R 10000:10000 docker/data/` |
 | Java: `Connection refused` | Cluster not running or port not published | `docker compose -f docker/docker-compose.yaml ps` — check node1 is up with port 10800 |
 | Java: cache not found (`CacheNotFoundException`) | Schema not loaded | Run the schema.sql step from hands-on #2 |
 | Sidecar: `Connection refused` to thin client | `IGNITE_ADDRESS` env var not set or using `localhost` | Sidecar connects via `node1:10800` — check `environment:` in `docker/docker-compose.yaml` |
+| Java: `InaccessibleObjectException: Unable to make field long java.nio.Buffer.address accessible` | JDK 17+ module restrictions — the required `--add-opens` flags are missing | Use `mvn -f handson3/java/pom.xml compile exec:exec` (the Maven `exec:exec` goal already passes the flags); if running `java` directly, add the `--add-opens` arguments from `pom.xml` |
 | .NET: NuGet restore fails | Network issue or package version mismatch | Verify `GridGain.Ignite` package resolves; see handson3 README |
+| Git Bash on Windows: sidecar commands fail with mangled paths | MSYS path translation converts `/work/...` to a Windows path | Prefix the command with `MSYS_NO_PATHCONV=1`, e.g. `MSYS_NO_PATHCONV=1 docker compose ... run --rm app mvn ...` |
 

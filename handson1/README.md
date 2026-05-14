@@ -25,7 +25,7 @@ graph TD
 Open [`../docker/docker-compose.yaml`](../docker/docker-compose.yaml) and review the configuration:
 
 - **Image:** `gridgain/enterprise:8.9.32-openjdk17-slim` — GridGain 8 Enterprise Edition with JDK 17.
-- **3 server nodes** connected on a private Docker network. Node discovery uses a static IP list configured in `training-node-config.xml`.
+- **3 server nodes** connected on a private Docker network. Node discovery uses a static host list configured in `training-node-config.xml`.
 - **Port 10800** (thin-client) is published on node1 so your local applications can connect.
 - **Optional sidecar containers** (`app` for Java / Maven, `app-dotnet` for .NET 8) are available for students who don't have a local SDK. They start only when explicitly requested.
 

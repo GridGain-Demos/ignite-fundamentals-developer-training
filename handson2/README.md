@@ -7,6 +7,10 @@ This guide walks you through using GridGain 8's SQL capabilities via the `sqllin
 * Completed hands-on #1 and have a running GridGain cluster
 * Basic familiarity with SQL
 
+## Working Directory
+
+Run all commands from the **repository root** (the directory containing `docker/`, `handson1/`, `handson2/`, and `handson3/`).
+
 ## Connecting to the Cluster Using sqlline
 
 We'll use `sqlline` — a JDBC command-line tool bundled inside the GridGain container — to run SQL against the cluster.
@@ -218,6 +222,9 @@ DELETE FROM Album WHERE AlbumId = 348 AND ArtistId = 276;
 DELETE FROM Artist WHERE ArtistId = 276;
 ```
 
+> [!WARNING]
+> The Hands-on #3 demo application inserts data using the same ArtistId (276) and AlbumId (348). If you ran the INSERT statements above but skipped the DELETE step, delete the rows before proceeding to Hands-on #3 to avoid duplicate-key errors.
+
 ## Advanced SQL Features
 
 ### Creating Indexes
@@ -257,10 +264,10 @@ The plan shows which indexes are used for the join. Look for `AFFINITY_KEY` — 
 
 Affinity colocation groups related rows from different tables onto the same node, so joins between them don't require network round-trips:
 
-* Albums are colocated by `ArtistId` — all albums by a given artist live on the same node as that artist
-* Tracks are colocated by `AlbumId` — all tracks on a given album live with that album
-* Invoices are colocated by `CustomerId` — a customer's invoices live with the customer record
-* InvoiceLines are colocated by `InvoiceId` — line items live with their parent invoice
+* Albums are colocated with Artists by `ArtistId` — all albums by a given artist live on the same node as that artist
+* Tracks are grouped by `AlbumId` — all tracks on a given album land on the same node as each other (but not necessarily with the Album row, which partitions by `ArtistId`)
+* Invoices are colocated with Customers by `CustomerId` — a customer's invoices live with the customer record
+* InvoiceLines are grouped by `InvoiceId` — all line items for a given invoice land together (but not necessarily with the Invoice row, which partitions by `CustomerId`)
 
 ## Dashboard Queries
 

@@ -11,7 +11,7 @@ This guide walks you through creating an application that connects to a GridGain
 
 ## What the Demo Covers
 
-The application demonstrates four patterns for working with a GridGain 8 cluster via the thin client:
+The application demonstrates five patterns for working with a GridGain 8 cluster via the thin client:
 
 1. **Connecting** to the cluster
 2. **SQL SELECT** — querying existing data with `SqlFieldsQuery`
@@ -23,7 +23,7 @@ The application demonstrates four patterns for working with a GridGain 8 cluster
 
 ### Review the Code
 
-Open `java/src/main/java/org/gridgain/training/fundamentals/Main.java` and examine the four blocks:
+Open `java/src/main/java/org/gridgain/training/fundamentals/Main.java` and examine the four methods (patterns 2–5 from the list above; pattern 1 — connecting — happens in `main()`):
 
 * **`queryExistingTable`** — runs a `SqlFieldsQuery` SELECT against the Album table
 * **`insertWithSqlDml`** — inserts new Artist and Album rows using parameterized SQL
@@ -41,6 +41,8 @@ mvn -f handson3/java/pom.xml compile exec:exec
 ```
 
 #### Option B: Docker Maven Sidecar
+
+From the repository root:
 
 ```bash
 docker compose -f docker/docker-compose.yaml run --rm app mvn -f handson3/java/pom.xml compile exec:exec
@@ -75,7 +77,7 @@ Album: 'First Light' by 'New Discovery Band'
 
 ### Review the Code
 
-Open `dotnet/Program.cs` and examine the same four blocks, translated to C#:
+Open `dotnet/Program.cs` and examine the same four methods, translated to C#:
 
 * **`QueryExistingTable`** — `SqlFieldsQuery` SELECT
 * **`InsertWithSqlDml`** — parameterized SQL INSERT
@@ -94,6 +96,8 @@ dotnet run --project handson3/dotnet/dotnet.csproj
 
 #### Option B: Docker .NET Sidecar
 
+From the repository root:
+
 ```bash
 docker compose -f docker/docker-compose.yaml run --rm app-dotnet dotnet run --project handson3/dotnet/dotnet.csproj
 ```
@@ -102,11 +106,11 @@ docker compose -f docker/docker-compose.yaml run --rm app-dotnet dotnet run --pr
 
 Same as the Java output above — both versions produce identical results.
 
-## Understanding GG8 Thin-Client Patterns
+## Understanding GridGain 8 Thin-Client Patterns
 
 ### SQL via SqlFieldsQuery
 
-The primary way to work with data in GG8. You obtain a cache handle and call `.query()` (Java) or `.Query()` (.NET) with a `SqlFieldsQuery`.
+The primary way to work with data in GridGain 8. You obtain a cache handle and call `.query()` (Java) or `.Query()` (.NET) with a `SqlFieldsQuery`.
 
 **Java:**
 ```java
