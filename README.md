@@ -100,6 +100,8 @@ docker compose -f docker/docker-compose.yaml up -d
 
 Verify all three nodes joined:
 
+**Bash:**
+
 ```bash
 docker compose -f docker/docker-compose.yaml logs node1 | grep "Topology snapshot" | tail -1
 ```
@@ -137,6 +139,8 @@ docker compose -f docker/docker-compose.yaml exec node1 /opt/gridgain/bin/sqllin
 ```
 
 Verify:
+
+**Bash:**
 
 ```bash
 printf 'SELECT COUNT(*) FROM Artist;\nSELECT COUNT(*) FROM Track;\n!quit\n' | docker compose -f docker/docker-compose.yaml exec -T node1 /opt/gridgain/bin/sqlline.sh -u jdbc:ignite:thin://node1:10800 --silent=true
