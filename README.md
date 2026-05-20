@@ -40,7 +40,7 @@ Check the [complete schedule](https://www.gridgain.com/products/services/trainin
 
 - Git
 - Docker Desktop
-- A bash-compatible terminal (Git Bash on Windows, or any macOS / Linux terminal)
+- A terminal — PowerShell on Windows, or any macOS / Linux terminal. Git Bash also works (see [Troubleshooting](#troubleshooting) for an MSYS path caveat)
 - Your favorite IDE (IntelliJ, Visual Studio, VS Code, or a plain editor)
 
 JDK 17 / Maven and .NET 8 SDK are optional — the `app` and `app-dotnet` sidecar services provide them. Install locally only if you prefer the standalone workflow.
