@@ -13,7 +13,30 @@ Run all commands from the **repository root** (the directory containing `docker/
 
 ## Connecting to the Cluster Using sqlline
 
-We'll use `sqlline` — a JDBC command-line tool bundled inside the GridGain container — to run SQL against the cluster.
+We'll use `sqlline` — a JDBC command-line tool bundled inside the GridGain container — to run SQL against the cluster. There are two ways to use it:
+
+**Non-interactive** — run a `.sql` file and exit automatically:
+
+```bash
+docker compose -f docker/docker-compose.yaml exec node1 /opt/gridgain/bin/sqlline.sh -u jdbc:ignite:thin://node1:10800 -f /path/to/file.sql
+```
+
+**Interactive** — open a SQL prompt where you type queries one at a time:
+
+```bash
+docker compose -f docker/docker-compose.yaml exec node1 /opt/gridgain/bin/sqlline.sh -u jdbc:ignite:thin://node1:10800
+```
+
+When you're in interactive mode, your prompt changes to `0: jdbc:ignite:thin://node1:10800>` — this means you're inside sqlline, not your regular terminal. Type SQL statements here and press Enter to run them.
+
+To exit sqlline and return to your terminal:
+
+```
+!quit
+```
+
+> [!TIP]
+> Throughout this guide, `bash` code blocks are terminal commands and `sql` code blocks are queries to type inside sqlline. If you see a `docker compose` command, make sure you've exited sqlline first with `!quit`.
 
 ## Understanding Distributed Database Concepts
 
@@ -95,6 +118,12 @@ SELECT TABLE_NAME, CACHE_NAME, AFFINITY_KEY_COLUMN FROM SYS.TABLES;
 ```
 
 You should see all 11 Chinook tables listed with their cache names and affinity key settings.
+
+Exit sqlline before continuing:
+
+```
+!quit
+```
 
 ## Inserting Sample Data
 
