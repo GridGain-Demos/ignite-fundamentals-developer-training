@@ -24,7 +24,7 @@ graph TD
 
 Open [`../docker/docker-compose.yaml`](../docker/docker-compose.yaml) and review the configuration:
 
-- **Image:** `gridgain/enterprise:8.9.32-openjdk17-slim` — GridGain 8 Enterprise Edition with JDK 17.
+- **Image:** `gridgain/enterprise:8.9.37-openjdk17` — GridGain 8 Enterprise Edition with JDK 17.
 - **3 server nodes** connected on a private Docker network. Node discovery uses a static IP list configured in `training-node-config.xml`.
 - **Port 10800** (thin-client) is published on node1 so your local applications can connect.
 - **Optional sidecar containers** (`app` for Java / Maven, `app-dotnet` for .NET 8) are available for students who don't have a local SDK. They start only when explicitly requested.
@@ -56,10 +56,12 @@ You should see three containers with status "running" (or "Up").
 Check the logs from node1 to confirm the cluster formed:
 
 ```bash
-docker compose -f docker/docker-compose.yaml logs node1
+docker compose -f docker/docker-compose.yaml logs | grep -o "servers=[0-9]*" | sort -u
 ```
 
-Scroll to the end and look for a line containing `Topology snapshot [ver=3, ... servers=3, clients=0]`. The `servers=3` confirms all three nodes have joined the cluster.
+Each node logs a topology snapshot every time the cluster membership changes, so you will see `servers=1` and `servers=2` from the nodes that started first. What matters is that `servers=3` appears in the list.
+
+Don't shortcut this to `... logs node1 | grep "Topology snapshot" | tail -1`. A node prints its own join-time snapshot after the live one, so the last line of a single node's log can report a lower count than the cluster actually has.
 
 ## Understanding Port Configuration
 

@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GridGain.Ignite" Version="8.9.32" />
+    <PackageReference Include="GridGain.Ignite" Version="8.9.37" />
   </ItemGroup>
 
 </Project>
