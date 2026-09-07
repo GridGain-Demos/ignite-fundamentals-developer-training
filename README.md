@@ -77,7 +77,7 @@ handson3/
 ## 1. Clone the Project
 
 ```bash
-git clone -b gg8_docker https://github.com/GridGain-Demos/ignite-fundamentals-developer-training.git
+git clone https://github.com/GridGain-Demos/ignite-fundamentals-developer-training.git
 cd ignite-fundamentals-developer-training
 ```
 
