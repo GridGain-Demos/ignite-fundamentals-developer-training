@@ -220,6 +220,43 @@ DELETE FROM Artist WHERE ArtistId = 276;
 
 ## Advanced SQL Features
 
+### Execution Plans
+
+You can inspect how GridGain processes a query with EXPLAIN. Run this one *before* creating any indexes, so you can see the plan the schema gives you out of the box.
+
+> [!TIP]
+> Execution plans are wide and sqlline truncates them by default. Tell sqlline how wide your terminal is first, with the "set" command: `!set maxwidth 500`
+
+```sql
+EXPLAIN SELECT
+    a.Title,
+    ar.Name
+FROM
+    Album a
+    JOIN Artist ar ON a.ArtistId = ar.ArtistId
+WHERE ar.ArtistId = 22;
+```
+
+The plan shows which indexes are used for the join. Look for `PUBLIC.AFFINITY_KEY` on the `ALBUM` lookup — that is the index GridGain creates automatically on a table's affinity-key column, so seeing it confirms the `affinityKey=ArtistId` setting from the DDL is really driving the join.
+
+Notice also that you get a *single* plan row: because `ArtistId = 22` pins the query to one partition, GridGain routes the whole thing to the node that owns it.
+
+Now run the same query without the `WHERE` clause:
+
+```sql
+EXPLAIN SELECT
+    a.Title,
+    ar.Name
+FROM
+    Album a
+    JOIN Artist ar ON a.ArtistId = ar.ArtistId;
+```
+
+This time the plan has **two** rows: a *map* query that runs on every node, and a *reduce* query (`PUBLIC.__T0`, `merge_scan`) that merges the partial results. With nothing pinning the affinity key, GridGain has to ask every node and combine what comes back.
+
+> [!NOTE]
+> EXPLAIN shows indexes, join order, and how a query splits into map and reduce phases. What it does not show is whether data crossed the network. Colocation's payoff is that each node's map phase joins locally — that surfaces as faster execution, not as a line in the plan.
+
 ### Creating Indexes
 
 ```sql
@@ -234,28 +271,8 @@ CREATE INDEX idx_album_artist ON Album (ArtistId, Title);
 CREATE INDEX idx_customer_email ON Customer (Email);
 ```
 
-### Execution Plans
-
-You can inspect how GridGain processes a query with EXPLAIN:
-
-```sql
-EXPLAIN SELECT
-    a.Title,
-    ar.Name
-FROM
-    Album a
-    JOIN Artist ar ON a.ArtistId = ar.ArtistId
-WHERE ar.ArtistId = 22;
-```
-
-The plan shows which indexes are used for the join. Look for `AFFINITY_KEY` — this indicates the join uses the affinity key index, meaning the data is colocated and the join executes locally on the node that owns Artist 22's partition.
-
-> [!TIP]
-> Sometimes the full execution plan is truncated. You can tell sqlline how wide your terminal is with the "set" command: `!set maxwidth 500`
-
-
 > [!NOTE]
-> EXPLAIN shows the query plan — indexes used and join order. The distributed execution layer (how work is split across nodes) is transparent. Colocation benefits don't appear explicitly in the plan; they show up as faster execution because no data needs to move between nodes.
+> Re-run the first EXPLAIN above now and the `ALBUM` lookup reports `PUBLIC.IDX_ALBUM_ARTIST` instead of `PUBLIC.AFFINITY_KEY` — `idx_album_artist` also leads with `ArtistId`, and the planner prefers it. The rows are still colocated; only the index chosen for the lookup changed.
 
 ### Colocation Strategy Summary
 

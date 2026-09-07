@@ -25,10 +25,26 @@ public class Program
         using var client = Ignition.StartClient(cfg);
         Console.WriteLine("Connected to the cluster");
 
+        ResetDemoData(client);
         QueryExistingTable(client);
         InsertWithSqlDml(client);
         KeyValueWithBinaryObject(client);
         VerifyResults(client);
+    }
+
+    /// <summary>
+    /// Removes the rows this demo creates so it can be run repeatedly.
+    /// Without this, the INSERTs below fail on a second run with
+    /// "Duplicate key during INSERT". Artist 277 is created by the
+    /// key-value block; it is visible to SQL, so DELETE removes it too.
+    /// </summary>
+    private static void ResetDemoData(IIgniteClient client)
+    {
+        var cache = client.GetCache<object, object>("Artist");
+
+        cache.Query(new SqlFieldsQuery("DELETE FROM Album WHERE AlbumId = ?", 348)).GetAll();
+        cache.Query(new SqlFieldsQuery("DELETE FROM Artist WHERE ArtistId = ?", 276)).GetAll();
+        cache.Query(new SqlFieldsQuery("DELETE FROM Artist WHERE ArtistId = ?", 277)).GetAll();
     }
 
     /// <summary>
@@ -41,7 +57,7 @@ public class Program
         var cache = client.GetCache<object, object>("Artist");
 
         var rows = cache.Query(
-            new SqlFieldsQuery("SELECT AlbumId, Title, ArtistId FROM Album LIMIT 10")
+            new SqlFieldsQuery("SELECT AlbumId, Title, ArtistId FROM Album ORDER BY AlbumId LIMIT 10")
         ).GetAll();
 
         foreach (var row in rows)

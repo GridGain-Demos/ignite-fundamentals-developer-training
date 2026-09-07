@@ -96,10 +96,12 @@ docker compose -f docker/docker-compose.yaml up -d
 Verify all three nodes joined:
 
 ```bash
-docker compose -f docker/docker-compose.yaml logs node1
+docker compose -f docker/docker-compose.yaml logs | grep -o "servers=[0-9]*" | sort -u
 ```
 
-Scroll to the end and look for a line containing `Topology snapshot [ver=3, ... servers=3, clients=0]`. The `servers=3` confirms all three nodes joined.
+Each node logs a topology snapshot every time cluster membership changes, so you will also see `servers=1` and `servers=2` from the nodes that started first. What matters is that `servers=3` appears in the list.
+
+Don't reduce this to a single node's last snapshot (`logs node1 | grep "Topology snapshot" | tail -1`) — a node prints its own join-time snapshot after the live one, so that line can report a lower count than the cluster actually has.
 
 ---
 

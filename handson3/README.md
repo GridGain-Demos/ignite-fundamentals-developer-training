@@ -19,12 +19,15 @@ The application demonstrates four patterns for working with a GridGain 8 cluster
 4. **Key-Value API** — putting and getting data using `BinaryObject` (schema-less access without requiring POJO classes on the server)
 5. **Verification** — reading back data with a SQL JOIN
 
+The app deletes the rows it creates before it starts, so you can run it as many times as you like — and run the Java and .NET versions back to back.
+
 ## Java
 
 ### Review the Code
 
 Open `java/src/main/java/org/gridgain/training/fundamentals/Main.java` and examine the four blocks:
 
+* **`resetDemoData`** — deletes the rows created below, so the demo can be re-run
 * **`queryExistingTable`** — runs a `SqlFieldsQuery` SELECT against the Album table
 * **`insertWithSqlDml`** — inserts new Artist and Album rows using parameterized SQL
 * **`keyValueWithBinaryObject`** — uses the cache key-value API with `BinaryObject` to put and get an Artist
@@ -77,6 +80,7 @@ Album: 'First Light' by 'New Discovery Band'
 
 Open `dotnet/Program.cs` and examine the same four blocks, translated to C#:
 
+* **`ResetDemoData`** — deletes the rows created below, so the demo can be re-run
 * **`QueryExistingTable`** — `SqlFieldsQuery` SELECT
 * **`InsertWithSqlDml`** — parameterized SQL INSERT
 * **`KeyValueWithBinaryObject`** — cache `Put`/`Get` with `IBinaryObject`
@@ -101,6 +105,14 @@ docker compose -f docker/docker-compose.yaml run --rm app-dotnet dotnet run --pr
 ### Expected Output
 
 Same as the Java output above — both versions produce identical results.
+
+The .NET client also prints one extra line before `Connected to the cluster`:
+
+```text
+[Warn] [] BinaryConfiguration.UnwrapNullablePrimitiveTypes is not enabled. ...
+```
+
+That warning is harmless — it concerns a legacy binary-format compatibility setting and does not affect this demo.
 
 ## Understanding GG8 Thin-Client Patterns
 
@@ -151,6 +163,7 @@ docker compose -f docker/docker-compose.yaml down
 * **Connection refused:** Verify containers are running with `docker compose -f docker/docker-compose.yaml ps`
 * **Cache not found:** Make sure you loaded the schema and data in hands-on #2
 * **Wrong address:** Local runs connect to `localhost:10800`; Docker sidecar runs use `node1:10800` (set automatically via `IGNITE_ADDRESS`)
+* **`Duplicate key during INSERT [key=276]`:** Demo rows left behind by an earlier run. The app clears them at startup, so just run it again. On an older checkout, clear them by hand in sqlline: `DELETE FROM Album WHERE AlbumId = 348;` then `DELETE FROM Artist WHERE ArtistId IN (276, 277);`
 
 ## Next Steps
 

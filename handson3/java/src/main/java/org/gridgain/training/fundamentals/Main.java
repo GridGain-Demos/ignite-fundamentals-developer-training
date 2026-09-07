@@ -23,11 +23,26 @@ public class Main {
         try (IgniteClient client = Ignition.startClient(cfg)) {
             System.out.println("Connected to the cluster");
 
+            resetDemoData(client);
             queryExistingTable(client);
             insertWithSqlDml(client);
             keyValueWithBinaryObject(client);
             verifyResults(client);
         }
+    }
+
+    /**
+     * Removes the rows this demo creates so it can be run repeatedly.
+     * Without this, the INSERTs below fail on a second run with
+     * "Duplicate key during INSERT". Artist 277 is created by the
+     * key-value block; it is visible to SQL, so DELETE removes it too.
+     */
+    private static void resetDemoData(IgniteClient client) {
+        ClientCache<?, ?> cache = client.cache("Artist");
+
+        cache.query(new SqlFieldsQuery("DELETE FROM Album WHERE AlbumId = ?").setArgs(348)).getAll();
+        cache.query(new SqlFieldsQuery("DELETE FROM Artist WHERE ArtistId = ?").setArgs(276)).getAll();
+        cache.query(new SqlFieldsQuery("DELETE FROM Artist WHERE ArtistId = ?").setArgs(277)).getAll();
     }
 
     /**
@@ -39,7 +54,7 @@ public class Main {
         ClientCache<?, ?> cache = client.cache("Artist");
 
         List<List<?>> rows = cache.query(
-                new SqlFieldsQuery("SELECT AlbumId, Title, ArtistId FROM Album LIMIT 10")
+                new SqlFieldsQuery("SELECT AlbumId, Title, ArtistId FROM Album ORDER BY AlbumId LIMIT 10")
         ).getAll();
 
         for (List<?> row : rows) {
